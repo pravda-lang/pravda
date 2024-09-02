@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 fn main() {
-    println!("Pravda 0.1.0");
+    println!("Pravda 0.2.0");
     let library = &mut HashMap::from([
         (
             "+".to_string(),
@@ -176,7 +176,11 @@ impl Type {
 #[derive(Clone, Debug)]
 enum Function {
     Primitive(fn(Vec<Type>) -> Type),
-    UserDefined { args: Vec<Type>, program: String },
+    UserDefined {
+        args: Vec<Type>,
+        program: String,
+        scope: HashMap<String, Type>,
+    },
 }
 
 fn run(
@@ -200,6 +204,7 @@ fn run(
                             .map(|i| Type::parse(i.to_string()))
                             .collect(),
                         program: lines[1..lines.len()].to_vec().join(" = "),
+                        scope: memory.to_owned(),
                     },
                 );
             } else {
@@ -260,11 +265,17 @@ fn eval(
         if let Some(liberal) = library.get(&identify) {
             if let Function::Primitive(function) = liberal {
                 function(params)
-            } else if let Function::UserDefined { args, program } = liberal {
+            } else if let Function::UserDefined {
+                args,
+                program,
+                scope,
+            } = liberal
+            {
+                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
                 for (arg, value) in args.iter().zip(params) {
-                    memory.insert(arg.get_string(), value);
+                    scope.insert(arg.get_string(), value);
                 }
-                eval(program.to_string(), library, memory)
+                eval(program.to_string(), library, &mut scope)
             } else {
                 todo!()
             }
