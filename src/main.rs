@@ -19,26 +19,26 @@ fn main() {
             "-".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
-                for i in params[1..params.len()].to_vec().iter() {
-                    result -= i;
+                if params.len() == 1 {
+                    Type::Number(-params[0])
+                } else {
+                    let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                    for i in params[1..params.len()].to_vec().iter() {
+                        result -= i;
+                    }
+                    Type::Number(result)
                 }
-                Type::Number(result)
             })),
         ),
         (
             "*".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                if params.len() == 1 {
-                    Type::Number(-params[0])
-                } else {
-                    let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
-                    for i in params[1..params.len()].to_vec().iter() {
-                        result *= i;
-                    }
-                    Type::Number(result)
+                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                for i in params[1..params.len()].to_vec().iter() {
+                    result *= i;
                 }
+                Type::Number(result)
             })),
         ),
         (
