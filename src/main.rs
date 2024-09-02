@@ -30,11 +30,15 @@ fn main() {
             "*".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
-                for i in params[1..params.len()].to_vec().iter() {
-                    result *= i;
+                if params.len() == 1 {
+                    Type::Number(-params[0])
+                } else {
+                    let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                    for i in params[1..params.len()].to_vec().iter() {
+                        result *= i;
+                    }
+                    Type::Number(result)
                 }
-                Type::Number(result)
             })),
         ),
         (
@@ -170,7 +174,22 @@ impl Type {
                     .join(" ")
             ),
             Type::Null => "null".to_string(),
-            Type::Function(_) => "Function".to_string(),
+            Type::Function(Function::Primitive(function)) => {
+                format!("<Built-in function: {:?}>", function)
+            }
+            Type::Function(Function::UserDefined {
+                args,
+                program: _,
+                scope: _,
+            }) => {
+                format!(
+                    "<User-defined function: ({:?})>",
+                    args.iter()
+                        .map(|i| i.get_string())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
+            }
         }
     }
 }
@@ -276,7 +295,11 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         .collect();
 
     if let Function::Primitive(function) = function {
-        function(params)
+        if params.is_empty() {
+            Type::Function(Function::Primitive(function))
+        } else {
+            function(params)
+        }
     } else if let Function::UserDefined {
         args,
         program,
