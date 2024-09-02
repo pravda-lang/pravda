@@ -2,55 +2,55 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 fn main() {
-    println!("Pravda 0.2.0");
-    let library = &mut HashMap::from([
+    println!("Pravda 0.3.0");
+    let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         (
             "+".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
                 for i in params[1..params.len()].to_vec().iter() {
                     result += i;
                 }
                 Type::Number(result)
-            }),
+            })),
         ),
         (
             "-".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
                 for i in params[1..params.len()].to_vec().iter() {
                     result -= i;
                 }
                 Type::Number(result)
-            }),
+            })),
         ),
         (
             "*".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
                 for i in params[1..params.len()].to_vec().iter() {
                     result *= i;
                 }
                 Type::Number(result)
-            }),
+            })),
         ),
         (
             "/".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
                 for i in params[1..params.len()].to_vec().iter() {
                     result /= i;
                 }
                 Type::Number(result)
-            }),
+            })),
         ),
         (
             "%".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
 
                 let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
@@ -58,11 +58,11 @@ fn main() {
                     result %= i;
                 }
                 Type::Number(result)
-            }),
+            })),
         ),
         (
             "print".to_string(),
-            Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params| {
                 print!(
                     "{}",
                     params
@@ -71,11 +71,10 @@ fn main() {
                         .get_string()
                 );
                 Type::Null
-            }),
+            })),
         ),
     ]);
 
-    let memory = &mut HashMap::new();
     loop {
         let mut code = String::new();
         loop {
@@ -87,7 +86,7 @@ fn main() {
         }
 
         if !code.is_empty() {
-            println!("{}", run(code, library, memory).get_string());
+            println!("{}", run(code, memory).get_string());
         }
     }
 }
@@ -104,6 +103,7 @@ fn input(prompt: &str) -> String {
 enum Type {
     Code(Vec<Type>),
     Symbol(String),
+    Function(Function),
     Number(f64),
     String(String),
     Bool(bool),
@@ -152,6 +152,7 @@ impl Type {
             }
             Type::Code(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
             Type::Null => 0.0,
+            _ => 0.0,
         }
     }
 
@@ -169,6 +170,7 @@ impl Type {
                     .join(" ")
             ),
             Type::Null => "null".to_string(),
+            Type::Function(_) => "Function".to_string(),
         }
     }
 }
@@ -183,11 +185,7 @@ enum Function {
     },
 }
 
-fn run(
-    source: String,
-    library: &mut HashMap<String, Function>,
-    memory: &mut HashMap<String, Type>,
-) -> Type {
+fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let source: Vec<&str> = source.split(";").collect();
     let mut result = Type::Null;
     for lines in source {
@@ -195,9 +193,9 @@ fn run(
             let lines: Vec<&str> = lines.split(" = ").collect();
             let define = lines[0].split_whitespace().collect::<Vec<&str>>();
             if define.len() > 1 {
-                library.insert(
+                memory.insert(
                     define[0].to_string(),
-                    Function::UserDefined {
+                    Type::Function(Function::UserDefined {
                         args: define[1..define.len()]
                             .to_vec()
                             .iter()
@@ -205,89 +203,101 @@ fn run(
                             .collect(),
                         program: lines[1..lines.len()].to_vec().join(" = "),
                         scope: memory.to_owned(),
-                    },
+                    }),
                 );
             } else {
-                result = eval(lines[1..lines.len()].to_vec().join(" = "), library, memory);
+                result = eval(lines[1..lines.len()].to_vec().join(" = "), memory);
                 memory.insert(define[0].to_string(), result.clone());
             }
         } else {
-            result = eval(lines.to_string(), library, memory);
+            result = eval(lines.to_string(), memory);
         }
     }
     result
 }
 
-fn eval(
-    programs: String,
-    library: &mut HashMap<String, Function>,
-    memory: &mut HashMap<String, Type>,
-) -> Type {
+fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     let programs: Vec<Type> = tokenize(programs)
         .iter()
         .map(|i| Type::parse(i.to_owned()))
         .collect();
     if let Type::Symbol(identify) = programs[0].clone() {
-        let params: Vec<Type> = programs[1..programs.len()]
-            .to_vec()
-            .iter()
-            .map(|i| {
-                if let Type::Code(code) = i.clone() {
-                    eval(
-                        {
-                            let temp = Type::Code(code)
-                                .get_string()
-                                .trim()
-                                .chars()
-                                .collect::<Vec<char>>();
-                            temp[1..temp.len() - 1]
-                                .to_vec()
-                                .iter()
-                                .map(|x| x.to_string())
-                                .collect::<Vec<String>>()
-                                .join("")
-                        },
-                        library,
-                        memory,
-                    )
-                } else if let Type::Symbol(name) = i.clone() {
-                    if let Some(value) = memory.get(&name) {
-                        value.to_owned()
-                    } else {
-                        i.to_owned()
-                    }
+        if let Some(Type::Function(name)) = memory.get(&identify) {
+            call_function(
+                name.to_owned(),
+                programs[1..programs.len()].to_vec(),
+                memory,
+            )
+        } else {
+            programs[0].clone()
+        }
+    } else if let Type::Function(liberal) = &programs[0] {
+        call_function(
+            liberal.clone(),
+            programs[1..programs.len()].to_vec(),
+            memory,
+        )
+    } else {
+        programs[0].to_owned()
+    }
+}
+
+fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
+    let params: Vec<Type> = args
+        .iter()
+        .map(|i| {
+            if let Type::Code(code) = i.clone() {
+                eval(
+                    {
+                        let temp = Type::Code(code)
+                            .get_string()
+                            .trim()
+                            .chars()
+                            .collect::<Vec<char>>();
+                        temp[1..temp.len() - 1]
+                            .to_vec()
+                            .iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<String>>()
+                            .join("")
+                    },
+                    memory,
+                )
+            } else if let Type::Symbol(name) = i.clone() {
+                if let Some(value) = memory.get(&name) {
+                    value.to_owned()
                 } else {
                     i.to_owned()
                 }
-            })
-            .collect();
+            } else {
+                i.to_owned()
+            }
+        })
+        .collect();
 
-        if let Some(liberal) = library.get(&identify) {
-            if let Function::Primitive(function) = liberal {
-                function(params)
-            } else if let Function::UserDefined {
-                args,
-                program,
-                scope,
-            } = liberal
-            {
-                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-                for (arg, value) in args.iter().zip(params) {
-                    scope.insert(arg.get_string(), value);
-                }
-                eval(program.to_string(), library, &mut scope)
-            } else {
-                todo!()
-            }
+    if let Function::Primitive(function) = function {
+        function(params)
+    } else if let Function::UserDefined {
+        args,
+        program,
+        scope,
+    } = function
+    {
+        let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
+        for (arg, value) in args.iter().zip(params.clone()) {
+            scope.insert(arg.get_string(), value);
+        }
+        if args.len() == params.len() {
+            eval(program.to_string(), &mut scope)
         } else {
-            if let Some(value) = memory.get(&identify) {
-                value.to_owned()
-            } else {
-                programs[0].clone()
-            }
+            Type::Function(Function::UserDefined {
+                args: args[params.len()..args.len()].to_vec(),
+                program: program.clone(),
+                scope: scope.to_owned(),
+            })
         }
     } else {
-        programs[0].to_owned()
+        todo!()
     }
 }
 
