@@ -183,7 +183,7 @@ impl Type {
                 scope: _,
             }) => {
                 format!(
-                    "<User-defined function: ({:?})>",
+                    "<User-defined function: ({})>",
                     args.iter()
                         .map(|i| i.get_string())
                         .collect::<Vec<String>>()
