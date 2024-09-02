@@ -64,28 +64,27 @@ fn main() {
             })),
         ),
         (
+            "^".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
+
+                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                for i in params[1..params.len()].to_vec().iter() {
+                    result = result.powf(*i);
+                }
+                Type::Number(result)
+            })),
+        ),
+        (
             "concat".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
                 Type::String(params.join(""))
             })),
         ),
-        (
-            "print".to_string(),
-            Type::Function(Function::Primitive(|params| {
-                print!(
-                    "{}",
-                    params
-                        .get(0)
-                        .expect("The paramater is deficiency")
-                        .get_string()
-                );
-                Type::Null
-            })),
-        ),
     ]);
 
-    println!("Pravda 0.3.0");
+    println!("Pravda 0.3.1");
     loop {
         let mut code = String::new();
         loop {
@@ -313,10 +312,10 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     } = function
     {
         let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-        for (arg, value) in args.iter().zip(params.clone()) {
+        for (arg, value) in args.iter().zip(params.to_vec()) {
             scope.insert(arg.get_string(), value);
         }
-        if args.len() == params.len() {
+        if args.len() <= params.len() {
             eval(program.to_string(), &mut scope)
         } else {
             Type::Function(Function::UserDefined {
