@@ -212,18 +212,17 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
             let lines: Vec<&str> = lines.split(" = ").collect();
             let define = lines[0].split_whitespace().collect::<Vec<&str>>();
             if define.len() > 1 {
-                memory.insert(
-                    define[0].to_string(),
-                    Type::Function(Function::UserDefined {
-                        args: define[1..define.len()]
-                            .to_vec()
-                            .iter()
-                            .map(|i| Type::parse(i.to_string()))
-                            .collect(),
-                        program: lines[1..lines.len()].to_vec().join(" = "),
-                        scope: memory.to_owned(),
-                    }),
-                );
+                let object = Type::Function(Function::UserDefined {
+                    args: define[1..define.len()]
+                        .to_vec()
+                        .iter()
+                        .map(|i| Type::parse(i.to_string()))
+                        .collect(),
+                    program: lines[1..lines.len()].to_vec().join(" = "),
+                    scope: memory.to_owned(),
+                });
+                result = object.clone();
+                memory.insert(define[0].to_string(), object);
             } else {
                 result = eval(lines[1..lines.len()].to_vec().join(" = "), memory);
                 memory.insert(define[0].to_string(), result.clone());
