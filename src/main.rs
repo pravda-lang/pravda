@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 fn main() {
-    println!("Pravda 0.3.0");
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         (
             "+".to_string(),
@@ -65,6 +64,13 @@ fn main() {
             })),
         ),
         (
+            "concat".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
+                Type::String(params.join(""))
+            })),
+        ),
+        (
             "print".to_string(),
             Type::Function(Function::Primitive(|params| {
                 print!(
@@ -79,6 +85,7 @@ fn main() {
         ),
     ]);
 
+    println!("Pravda 0.3.0");
     loop {
         let mut code = String::new();
         loop {
