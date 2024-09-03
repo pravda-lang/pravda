@@ -184,6 +184,30 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
+fn search_vec(
+    vec: Vec<(Vec<Type>, (String, HashMap<String, Type>))>,
+    target: Vec<Type>,
+) -> Option<(String, HashMap<String, Type>)> {
+    let mut temp = None;
+    for item in vec {
+        if item
+            .0
+            .iter()
+            .map(|i| i.get_string())
+            .collect::<Vec<String>>()
+            .join("\n")
+            == target
+                .iter()
+                .map(|i| i.get_string())
+                .collect::<Vec<String>>()
+                .join("\n")
+        {
+            temp = Some(item.1);
+        }
+    }
+    temp
+}
+
 #[derive(Clone, Debug)]
 enum Type {
     Code(Vec<Type>),
@@ -258,19 +282,7 @@ impl Type {
             Type::Function(Function::Primitive(function)) => {
                 format!("<Built-in function: {:?}>", function)
             }
-            Type::Function(Function::UserDefined {
-                args,
-                program: _,
-                scope: _,
-            }) => {
-                format!(
-                    "<User-defined function: ({})>",
-                    args.iter()
-                        .map(|i| i.get_string())
-                        .collect::<Vec<String>>()
-                        .join(" ")
-                )
-            }
+            Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
         }
     }
 }
@@ -278,11 +290,7 @@ impl Type {
 #[derive(Clone, Debug)]
 enum Function {
     Primitive(fn(Vec<Type>) -> Type),
-    UserDefined {
-        args: Vec<Type>,
-        program: String,
-        scope: HashMap<String, Type>,
-    },
+    UserDefined(Vec<(Vec<Type>, (String, HashMap<String, Type>))>),
 }
 
 fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
@@ -294,17 +302,40 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
             let lines: Vec<&str> = lines.split(" = ").collect();
             let define = lines[0].split_whitespace().collect::<Vec<&str>>();
             if define.len() > 1 {
-                let object = Type::Function(Function::UserDefined {
-                    args: define[1..define.len()]
+                if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(define[0]) {
+                    let mut exist = exist.clone();
+                    let args: Vec<Type> = define[1..define.len()]
                         .to_vec()
                         .iter()
                         .map(|i| Type::parse(i.to_string()))
-                        .collect(),
-                    program: lines[1..lines.len()].to_vec().join(" = "),
-                    scope: memory.to_owned(),
-                });
-                result = object.clone();
-                memory.insert(define[0].to_string(), object);
+                        .collect();
+                    if exist.len() == args.len() {
+                        exist.push((
+                            args,
+                            (
+                                lines[1..lines.len()].to_vec().join(" = "),
+                                memory.to_owned(),
+                            ),
+                        ));
+                        let object = Type::Function(Function::UserDefined(exist));
+                        result = object.clone();
+                        memory.insert(define[0].to_string(), object);
+                    }
+                } else {
+                    let object = Type::Function(Function::UserDefined(vec![(
+                        define[1..define.len()]
+                            .to_vec()
+                            .iter()
+                            .map(|i| Type::parse(i.to_string()))
+                            .collect(),
+                        (
+                            lines[1..lines.len()].to_vec().join(" = "),
+                            memory.to_owned(),
+                        ),
+                    )]));
+                    result = object.clone();
+                    memory.insert(define[0].to_string(), object);
+                }
             } else {
                 result = eval(lines[1..lines.len()].to_vec().join(" = "), memory);
                 memory.insert(define[0].to_string(), result.clone());
@@ -389,26 +420,78 @@ fn call_function(
 
     if let Function::Primitive(function) = function {
         function(params)
-    } else if let Function::UserDefined {
-        args,
-        program,
-        scope,
-    } = function
-    {
-        let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-        scope.extend(memory.to_owned());
-        for (arg, value) in args.iter().zip(params.to_vec()) {
-            scope.insert(arg.get_string(), value);
-        }
+    } else if let Function::UserDefined(object) = function {
+        if let Some((program, scope)) = search_vec(object.clone(), params.clone()) {
+            if let Some(args) = {
+                // 全て仮引数か?
+                let mut flag = None;
+                for item in object.clone() {
+                    if item
+                        .0
+                        .iter()
+                        .all(|i| if let Type::Symbol(_) = i { true } else { false })
+                    {
+                        flag = Some(item.0);
+                        break;
+                    }
+                }
+                flag
+            } {
+                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
+                scope.extend(memory.to_owned());
+                for (arg, value) in args.iter().zip(params.to_vec()) {
+                    scope.insert(arg.get_string(), value);
+                }
 
-        if args.len() <= params.len() {
-            eval(program.to_string(), &mut scope)
+                if args.len() <= params.len() {
+                    eval(program.to_string(), &mut scope)
+                } else {
+                    let mut object = object.clone();
+                    object.push((
+                        args[params.len()..args.len()].to_vec(),
+                        (program.clone(), scope.to_owned()),
+                    ));
+                    Type::Function(Function::UserDefined(object))
+                }
+            } else {
+                let mut scope = scope.clone();
+                eval(program.to_string(), &mut scope)
+            }
         } else {
-            Type::Function(Function::UserDefined {
-                args: args[params.len()..args.len()].to_vec(),
-                program: program.clone(),
-                scope: scope.to_owned(),
-            })
+            if let Some(object2) = {
+                // 全て仮引数か?
+                let mut flag = None;
+                for item in object.clone() {
+                    if item
+                        .0
+                        .iter()
+                        .all(|i| if let Type::Symbol(_) = i { true } else { false })
+                    {
+                        flag = Some(item);
+                        break;
+                    }
+                }
+                flag
+            } {
+                let mut scope: &mut HashMap<String, Type> = &mut object2.1 .1.clone();
+                scope.extend(memory.to_owned());
+                for (arg, value) in object2.0.iter().zip(params.to_vec()) {
+                    scope.insert(arg.get_string(), value);
+                }
+
+                if object2.0.len() <= params.len() {
+                    eval(object2.1 .0.to_string(), &mut scope)
+                } else {
+                    let mut object = object.clone();
+                    object.push((
+                        object2.0[params.len()..object2.0.len()].to_vec(),
+                        (object2.1 .0.clone(), scope.to_owned()),
+                    ));
+                    Type::Function(Function::UserDefined(object))
+                }
+            } else {
+                Type::Null
+            }
         }
     } else {
         return Type::Null;
