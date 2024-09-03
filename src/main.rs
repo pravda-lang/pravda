@@ -422,41 +422,8 @@ fn call_function(
         function(params)
     } else if let Function::UserDefined(object) = function {
         if let Some((program, scope)) = search_vec(object.clone(), params.clone()) {
-            if let Some(args) = {
-                // 全て仮引数か?
-                let mut flag = None;
-                for item in object.clone() {
-                    if item
-                        .0
-                        .iter()
-                        .all(|i| if let Type::Symbol(_) = i { true } else { false })
-                    {
-                        flag = Some(item.0);
-                        break;
-                    }
-                }
-                flag
-            } {
-                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-                scope.extend(memory.to_owned());
-                for (arg, value) in args.iter().zip(params.to_vec()) {
-                    scope.insert(arg.get_string(), value);
-                }
-
-                if args.len() <= params.len() {
-                    eval(program.to_string(), &mut scope)
-                } else {
-                    let mut object = object.clone();
-                    object.push((
-                        args[params.len()..args.len()].to_vec(),
-                        (program.clone(), scope.to_owned()),
-                    ));
-                    Type::Function(Function::UserDefined(object))
-                }
-            } else {
-                let mut scope = scope.clone();
-                eval(program.to_string(), &mut scope)
-            }
+            let mut scope = scope.clone();
+            eval(program.to_string(), &mut scope)
         } else {
             if let Some(object2) = {
                 // 全て仮引数か?
