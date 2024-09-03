@@ -7,7 +7,11 @@ fn main() {
             "+".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                let mut result: f64 = if let Some(result) = params.get(0) {
+                    result.to_owned()
+                } else {
+                    return Type::Null;
+                };
                 for i in params[1..params.len()].to_vec().iter() {
                     result += i;
                 }
@@ -21,7 +25,11 @@ fn main() {
                 if params.len() == 1 {
                     Type::Number(-params[0])
                 } else {
-                    let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                    let mut result: f64 = if let Some(result) = params.get(0) {
+                        result.to_owned()
+                    } else {
+                        return Type::Null;
+                    };
                     for i in params[1..params.len()].to_vec().iter() {
                         result -= i;
                     }
@@ -33,7 +41,11 @@ fn main() {
             "*".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                let mut result: f64 = if let Some(result) = params.get(0) {
+                    result.to_owned()
+                } else {
+                    return Type::Null;
+                };
                 for i in params[1..params.len()].to_vec().iter() {
                     result *= i;
                 }
@@ -44,7 +56,11 @@ fn main() {
             "/".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                let mut result: f64 = if let Some(result) = params.get(0) {
+                    result.to_owned()
+                } else {
+                    return Type::Null;
+                };
                 for i in params[1..params.len()].to_vec().iter() {
                     result /= i;
                 }
@@ -55,8 +71,11 @@ fn main() {
             "%".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                let mut result: f64 = if let Some(result) = params.get(0) {
+                    result.to_owned()
+                } else {
+                    return Type::Null;
+                };
                 for i in params[1..params.len()].to_vec().iter() {
                     result %= i;
                 }
@@ -67,8 +86,11 @@ fn main() {
             "^".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-
-                let mut result: f64 = *params.get(0).expect("The paramater is deficiency");
+                let mut result: f64 = if let Some(result) = params.get(0) {
+                    result.to_owned()
+                } else {
+                    return Type::Null;
+                };
                 for i in params[1..params.len()].to_vec().iter() {
                     result = result.powf(*i);
                 }
@@ -86,9 +108,16 @@ fn main() {
             "repeat".to_string(),
             Type::Function(Function::Primitive(|params| {
                 Type::String(
-                    params[0]
-                        .get_string()
-                        .repeat(params[1].get_number() as usize),
+                    if let Some(count) = params.get(0) {
+                        count.get_string()
+                    } else {
+                        return Type::Null;
+                    }
+                    .repeat(if let Some(count) = params.get(1) {
+                        count.get_number() as usize
+                    } else {
+                        return Type::Null;
+                    }),
                 )
             })),
         ),
@@ -224,6 +253,11 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let source: Vec<&str> = source.split(";").collect();
     let mut result = Type::Null;
     for lines in source {
+        let lines = lines.trim().to_string();
+        if lines.is_empty() {
+            continue;
+        }
+
         if lines.contains(" = ") {
             let lines: Vec<&str> = lines.split(" = ").collect();
             let define = lines[0].split_whitespace().collect::<Vec<&str>>();
