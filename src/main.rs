@@ -473,19 +473,21 @@ fn call_function(
                 }
                 flag
             } {
+                let (args, program) = (object2.0, object2.1 .0);
                 let mut scope: &mut HashMap<String, Type> = &mut object2.1 .1.clone();
+
                 scope.extend(memory.to_owned());
-                for (arg, value) in object2.0.iter().zip(params.to_vec()) {
+                for (arg, value) in args.iter().zip(params.to_vec()) {
                     scope.insert(arg.get_string(), value);
                 }
 
-                if object2.0.len() <= params.len() {
-                    eval(object2.1 .0.to_string(), &mut scope)
+                if args.len() <= params.len() {
+                    eval(program.to_string(), &mut scope)
                 } else {
                     let mut object = object.clone();
                     object.push((
-                        object2.0[params.len()..object2.0.len()].to_vec(),
-                        (object2.1 .0.clone(), scope.to_owned()),
+                        args[params.len()..args.len()].to_vec(),
+                        (program.clone(), scope.to_owned()),
                     ));
                     Type::Function(Function::UserDefined(object))
                 }
