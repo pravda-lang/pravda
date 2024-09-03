@@ -400,14 +400,14 @@ fn call_function(
             scope.insert(arg.get_string(), value);
         }
 
-        scope.extend(memory.to_owned());
+        memory.extend(scope.to_owned());
         if args.len() <= params.len() {
             eval(program.to_string(), &mut scope)
         } else {
             Type::Function(Function::UserDefined {
                 args: args[params.len()..args.len()].to_vec(),
                 program: program.clone(),
-                scope: scope.to_owned(),
+                scope: memory.to_owned(),
             })
         }
     } else {
