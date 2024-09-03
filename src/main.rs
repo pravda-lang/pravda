@@ -127,8 +127,8 @@ fn main() {
         (
             "input".to_string(),
             Type::Function(Function::Primitive(|params| {
-                Type::String(input(&if let Some(count) = params.get(0) {
-                    count.get_string()
+                Type::String(input(&if let Some(prompt) = params.get(0) {
+                    prompt.get_string()
                 } else {
                     "".to_string()
                 }))
