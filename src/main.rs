@@ -309,7 +309,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         .iter()
                         .map(|i| Type::parse(i.to_string()))
                         .collect();
-                    if exist.len() == args.len() {
+                    if exist[0].0.len() == args.len() {
                         exist.push((
                             args,
                             (
