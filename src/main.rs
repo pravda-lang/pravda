@@ -256,12 +256,16 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
         .map(|i| Type::parse(i.to_owned()))
         .collect();
     if let Type::Symbol(identify) = programs[0].clone() {
-        if let Some(Type::Function(name)) = memory.get(&identify) {
-            call_function(
-                name.to_owned(),
-                programs[1..programs.len()].to_vec(),
-                memory,
-            )
+        if let Some(value) = memory.get(&identify) {
+            if let Type::Function(name) = value {
+                call_function(
+                    name.to_owned(),
+                    programs[1..programs.len()].to_vec(),
+                    memory,
+                )
+            } else {
+                value.to_owned()
+            }
         } else {
             programs[0].clone()
         }
@@ -335,7 +339,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
             })
         }
     } else {
-        todo!()
+        return Type::Null;
     }
 }
 
