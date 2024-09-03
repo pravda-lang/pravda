@@ -449,7 +449,7 @@ fn call_function(
             let mut scope = scope.clone();
             eval(program.to_string(), &mut scope)
         } else {
-            if let Some(object2) = {
+            if let Some((args, (program, scope))) = {
                 // 全て仮引数か?
                 let mut flag = None;
                 for item in object.clone() {
@@ -464,9 +464,7 @@ fn call_function(
                 }
                 flag
             } {
-                let (args, program) = (object2.0, object2.1 .0);
-                let mut scope: &mut HashMap<String, Type> = &mut object2.1 .1.clone();
-
+                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
                 scope.extend(memory.to_owned());
                 for (arg, value) in args.iter().zip(params.to_vec()) {
                     scope.insert(arg.get_string(), value);
