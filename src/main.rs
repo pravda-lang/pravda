@@ -452,7 +452,11 @@ fn call_function(
             if let Some((args, (program, scope))) = {
                 // 全て仮引数か?
                 let mut flag = None;
-                for item in object.clone() {
+                for item in {
+                    let mut object = object.clone();
+                    object.reverse();
+                    object
+                } {
                     if item
                         .0
                         .iter()
