@@ -170,7 +170,7 @@ fn main() {
             }
 
             if !code.is_empty() {
-                println!("{}", run(code, memory).get_string());
+                println!("{}", run(code, memory).get_symbol());
             }
         }
     }
@@ -193,12 +193,12 @@ fn search_vec(
         if item
             .0
             .iter()
-            .map(|i| i.get_string())
+            .map(|i| i.get_symbol())
             .collect::<Vec<String>>()
             .join("\n")
             == target
                 .iter()
-                .map(|i| i.get_string())
+                .map(|i| i.get_symbol())
                 .collect::<Vec<String>>()
                 .join("\n")
         {
@@ -275,6 +275,28 @@ impl Type {
                 value
                     .iter()
                     .map(|i| i.get_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            ),
+            Type::Null => "null".to_string(),
+            Type::Function(Function::Primitive(function)) => {
+                format!("<Built-in function: {:?}>", function)
+            }
+            Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+        }
+    }
+
+    fn get_symbol(&self) -> String {
+        match self {
+            Type::Number(value) => value.to_string(),
+            Type::String(value) => format!("\"{}\"", value),
+            Type::Symbol(value) => value.to_string(),
+            Type::Bool(value) => value.to_string(),
+            Type::Code(value) => format!(
+                "({})",
+                value
+                    .iter()
+                    .map(|i| i.get_symbol())
                     .collect::<Vec<String>>()
                     .join(" ")
             ),
