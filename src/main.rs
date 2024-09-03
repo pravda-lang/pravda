@@ -320,6 +320,8 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         let object = Type::Function(Function::UserDefined(exist));
                         result = object.clone();
                         memory.insert(define[0].to_string(), object);
+                    } else {
+                        eprintln!("Error! the function arguments length should be immutable");
                     }
                 } else {
                     let object = Type::Function(Function::UserDefined(vec![(
