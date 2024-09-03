@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use std::env::args;
+use std::fs::read_to_string;
 use std::io::{self, Write};
+use std::path::Path;
 
 fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
@@ -147,19 +150,28 @@ fn main() {
         ),
     ]);
 
-    println!("Pravda 0.3.2");
-    loop {
-        let mut code = String::new();
-        loop {
-            let enter = input("> ").trim().to_string();
-            if enter.is_empty() {
-                break;
-            }
-            code += &format!("{enter} ");
+    let args: Vec<String> = args().collect();
+    if args.len() >= 2 {
+        if let Ok(code) = read_to_string(Path::new(&args[1])) {
+            run(code, memory);
+        } else {
+            eprintln!("Error! it fault to open the script file")
         }
+    } else {
+        println!("Pravda 0.3.2");
+        loop {
+            let mut code = String::new();
+            loop {
+                let enter = input("> ").trim().to_string();
+                if enter.is_empty() {
+                    break;
+                }
+                code += &format!("{enter} ");
+            }
 
-        if !code.is_empty() {
-            println!("{}", run(code, memory).get_string());
+            if !code.is_empty() {
+                println!("{}", run(code, memory).get_string());
+            }
         }
     }
 }
