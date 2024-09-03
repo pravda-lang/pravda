@@ -158,7 +158,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.3.2");
+        println!("Pravda 0.4.0");
         loop {
             let mut code = String::new();
             loop {
