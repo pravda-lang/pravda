@@ -350,8 +350,12 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     }
 }
 
-fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
-    let params: Vec<Type> = args
+fn call_function(
+    function: Function,
+    params: Vec<Type>,
+    memory: &mut HashMap<String, Type>,
+) -> Type {
+    let params: Vec<Type> = params
         .iter()
         .map(|i| {
             if let Type::Code(code) = i.clone() {
