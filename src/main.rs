@@ -131,7 +131,7 @@ fn main() {
             if enter.is_empty() {
                 break;
             }
-            code += &format!("{enter}\n");
+            code += &format!("{enter} ");
         }
 
         if !code.is_empty() {
