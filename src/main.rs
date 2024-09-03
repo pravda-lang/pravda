@@ -82,6 +82,16 @@ fn main() {
                 Type::String(params.join(""))
             })),
         ),
+        (
+            "repeat".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                Type::String(
+                    params[0]
+                        .get_string()
+                        .repeat(params[1].get_number() as usize),
+                )
+            })),
+        ),
     ]);
 
     println!("Pravda 0.3.1");
