@@ -94,7 +94,7 @@ fn main() {
         ),
     ]);
 
-    println!("Pravda 0.3.1");
+    println!("Pravda 0.3.2");
     loop {
         let mut code = String::new();
         loop {
