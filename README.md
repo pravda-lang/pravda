@@ -6,5 +6,4 @@ We look forward to seeing your contribute!
 
 ## Screen-shots
 
-<img width="900" alt="image" src="https://github.com/user-attachments/assets/504ec279-95c8-4b80-9a9b-d2cc6938ab31">
-<img width="900" alt="image" src="https://github.com/user-attachments/assets/5bbfc698-23f9-428a-a5da-07451fde9de1">
+<img width="699" alt="image" src="https://github.com/user-attachments/assets/b1c5d737-1f26-464c-9d6a-a38e5c53b6e1">
