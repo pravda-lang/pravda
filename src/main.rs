@@ -399,6 +399,8 @@ fn call_function(
         for (arg, value) in args.iter().zip(params.to_vec()) {
             scope.insert(arg.get_string(), value);
         }
+
+        scope.extend(memory.to_owned());
         if args.len() <= params.len() {
             eval(program.to_string(), &mut scope)
         } else {
