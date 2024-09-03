@@ -396,18 +396,18 @@ fn call_function(
     } = function
     {
         let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
+        scope.extend(memory.to_owned());
         for (arg, value) in args.iter().zip(params.to_vec()) {
             scope.insert(arg.get_string(), value);
         }
 
-        memory.extend(scope.to_owned());
         if args.len() <= params.len() {
             eval(program.to_string(), &mut scope)
         } else {
             Type::Function(Function::UserDefined {
                 args: args[params.len()..args.len()].to_vec(),
                 program: program.clone(),
-                scope: memory.to_owned(),
+                scope: scope.to_owned(),
             })
         }
     } else {
