@@ -254,10 +254,6 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let mut result = Type::Null;
     for lines in source {
         let lines = lines.trim().to_string();
-        if lines.is_empty() {
-            continue;
-        }
-
         if lines.contains(" = ") {
             let lines: Vec<&str> = lines.split(" = ").collect();
             let define = lines[0].split_whitespace().collect::<Vec<&str>>();
@@ -289,6 +285,10 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
         .iter()
         .map(|i| Type::parse(i.to_owned()))
         .collect();
+    if programs.is_empty() {
+        return Type::Null;
+    }
+
     if let Type::Symbol(identify) = programs[0].clone() {
         if let Some(value) = memory.get(&identify) {
             if let Type::Function(name) = value {
@@ -439,7 +439,7 @@ fn tokenize(input: String) -> Vec<String> {
         }
     }
 
-    if !current_token.is_empty() {
+    if !(in_parentheses != 0 || in_quote) && !current_token.is_empty() {
         tokens.push(current_token);
     }
     tokens
