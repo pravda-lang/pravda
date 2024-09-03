@@ -406,8 +406,6 @@ fn tokenize(input: String) -> Vec<String> {
                         tokens.push(current_token.clone());
                         current_token.clear();
                     }
-                } else {
-                    panic!("Syntax error: invalid end of parentheses")
                 }
             }
             '"' => {
@@ -441,16 +439,8 @@ fn tokenize(input: String) -> Vec<String> {
         }
     }
 
-    if in_parentheses != 0 {
-        panic!("Syntax error: There isn't end of parentheses");
-    }
-    if in_quote {
-        panic!("Syntax error: There isn't end of quote");
-    }
-
     if !current_token.is_empty() {
         tokens.push(current_token);
     }
-
     tokens
 }
