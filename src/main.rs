@@ -121,6 +121,30 @@ fn main() {
                 )
             })),
         ),
+        (
+            "input".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                Type::String(input(&if let Some(count) = params.get(0) {
+                    count.get_string()
+                } else {
+                    "".to_string()
+                }))
+            })),
+        ),
+        (
+            "print".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                println!(
+                    "{}",
+                    if let Some(count) = params.get(0) {
+                        count.get_string()
+                    } else {
+                        "".to_string()
+                    }
+                );
+                Type::Null
+            })),
+        ),
     ]);
 
     println!("Pravda 0.3.2");
@@ -348,11 +372,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         .collect();
 
     if let Function::Primitive(function) = function {
-        if params.is_empty() {
-            Type::Function(Function::Primitive(function))
-        } else {
-            function(params)
-        }
+        function(params)
     } else if let Function::UserDefined {
         args,
         program,
