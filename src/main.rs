@@ -244,7 +244,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.5.2");
+        println!("Pravda 0.5.3");
         loop {
             let mut code = String::new();
             loop {
@@ -591,6 +591,26 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                     }
                 } else if let Type::List(list) = Type::parse(name.clone()) {
                     for j in list {
+                        params.push(j.to_owned())
+                    }
+                } else if let Type::Code(code) = Type::parse(name.clone()) {
+                    let result = eval(
+                        {
+                            let temp = Type::Code(code)
+                                .get_string()
+                                .trim()
+                                .chars()
+                                .collect::<Vec<char>>();
+                            temp[1..temp.len() - 1]
+                                .to_vec()
+                                .iter()
+                                .map(|x| x.to_string())
+                                .collect::<Vec<String>>()
+                                .join("")
+                        },
+                        memory,
+                    );
+                    for j in result.get_list() {
                         params.push(j.to_owned())
                     }
                 } else {
