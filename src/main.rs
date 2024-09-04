@@ -549,7 +549,11 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
             memory,
         )
     } else {
-        programs[0].to_owned()
+        if programs.len() == 1 {
+            programs[0].to_owned()
+        } else {
+            Type::List(programs)
+        }
     }
 }
 
