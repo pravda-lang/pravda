@@ -553,12 +553,12 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                     for j in value.get_list() {
                         params.push(j.to_owned())
                     }
-                } else if let Type::List(list) = Type::parse(name) {
+                } else if let Type::List(list) = Type::parse(name.clone()) {
                     for j in list {
                         params.push(j.to_owned())
                     }
                 } else {
-                    params.push(i.to_owned())
+                    params.push(Type::parse(name))
                 }
             } else {
                 if let Some(value) = memory.get(&name) {
