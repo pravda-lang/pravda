@@ -234,6 +234,38 @@ fn main() {
                 }
             })),
         ),
+        (
+            "range".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                if params.len() == 1 {
+                    let mut range: Vec<Type> = vec![];
+                    let mut current: f64 = 0.0;
+                    while current < params[0].get_number() {
+                        range.push(Type::Number(current));
+                        current += 1.0;
+                    }
+                    Type::List(range)
+                } else if params.len() == 2 {
+                    let mut range: Vec<Type> = vec![];
+                    let mut current: f64 = params[0].get_number();
+                    while current < params[1].get_number() {
+                        range.push(Type::Number(current));
+                        current += 1.0;
+                    }
+                    Type::List(range)
+                } else if params.len() >= 3 {
+                    let mut range: Vec<Type> = vec![];
+                    let mut current: f64 = params[0].get_number();
+                    while current < params[1].get_number() {
+                        range.push(Type::Number(current));
+                        current += params[2].get_number();
+                    }
+                    Type::List(range)
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
