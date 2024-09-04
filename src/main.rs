@@ -258,6 +258,7 @@ enum Type {
     Number(f64),
     String(String),
     Bool(bool),
+    Array(Vec<Type>),
     Null,
 }
 
@@ -301,7 +302,9 @@ impl Type {
                     0.0
                 }
             }
-            Type::Code(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
+            Type::Code(value) | Type::Array(value) => {
+                value.get(0).unwrap_or(&Type::Null).get_number()
+            }
             Type::Null => 0.0,
             Type::Function(Function::UserDefined(value)) => value.len() as f64,
             Type::Function(Function::Primitive(_)) => 0.0,
@@ -315,6 +318,14 @@ impl Type {
             Type::Bool(value) => value.to_string(),
             Type::Code(value) => format!(
                 "({})",
+                value
+                    .iter()
+                    .map(|i| i.get_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            ),
+            Type::Array(value) => format!(
+                "[{}]",
                 value
                     .iter()
                     .map(|i| i.get_string())
@@ -343,6 +354,14 @@ impl Type {
                     .collect::<Vec<String>>()
                     .join(" ")
             ),
+            Type::Array(value) => format!(
+                "[{}]",
+                value
+                    .iter()
+                    .map(|i| i.get_symbol())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            ),
             Type::Null => "null".to_string(),
             Type::Function(Function::Primitive(function)) => {
                 format!("<Built-in function: {:?}>", function)
@@ -356,9 +375,18 @@ impl Type {
             Type::Number(value) => *value != 0.0,
             Type::String(value) | Type::Symbol(value) => value.parse().unwrap_or_default(),
             Type::Bool(value) => *value,
-            Type::Code(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
+            Type::Code(value) | Type::Array(value) => {
+                value.get(0).unwrap_or(&Type::Null).get_bool()
+            }
             Type::Null => false,
             Type::Function(_) => true,
+        }
+    }
+
+    fn get_array(&self) -> Vec<Type> {
+        match self {
+            Type::Array(value) => value.to_owned(),
+            other => vec![other.to_owned()],
         }
     }
 }
@@ -459,42 +487,46 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     }
 }
 
-fn call_function(
-    function: Function,
-    params: Vec<Type>,
-    memory: &mut HashMap<String, Type>,
-) -> Type {
-    let params: Vec<Type> = params
-        .iter()
-        .map(|i| {
-            if let Type::Code(code) = i.clone() {
-                eval(
-                    {
-                        let temp = Type::Code(code)
-                            .get_string()
-                            .trim()
-                            .chars()
-                            .collect::<Vec<char>>();
-                        temp[1..temp.len() - 1]
-                            .to_vec()
-                            .iter()
-                            .map(|x| x.to_string())
-                            .collect::<Vec<String>>()
-                            .join("")
-                    },
-                    memory,
-                )
-            } else if let Type::Symbol(name) = i.clone() {
-                if let Some(value) = memory.get(&name) {
-                    value.to_owned()
+fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
+    let mut params: Vec<Type> = vec![];
+    for i in args {
+        if let Type::Code(code) = i.clone() {
+            params.push(eval(
+                {
+                    let temp = Type::Code(code)
+                        .get_string()
+                        .trim()
+                        .chars()
+                        .collect::<Vec<char>>();
+                    temp[1..temp.len() - 1]
+                        .to_vec()
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join("")
+                },
+                memory,
+            ))
+        } else if let Type::Symbol(name) = i.clone() {
+            if name.starts_with("*") {
+                if let Some(value) = memory.get(&name[1..name.len()]) {
+                    for j in value.get_array() {
+                        params.push(j.to_owned())
+                    }
                 } else {
-                    i.to_owned()
+                    params.push(i.to_owned())
                 }
             } else {
-                i.to_owned()
+                if let Some(value) = memory.get(&name) {
+                    params.push(value.to_owned())
+                } else {
+                    params.push(i.to_owned())
+                }
             }
-        })
-        .collect();
+        } else {
+            params.push(i.to_owned());
+        }
+    }
 
     if let Function::Primitive(function) = function {
         function(params)
@@ -523,8 +555,28 @@ fn call_function(
             } {
                 let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
                 scope.extend(memory.to_owned());
-                for (arg, value) in args.iter().zip(params.to_vec()) {
-                    scope.insert(arg.get_string(), value);
+                if args[args.len() - 1].get_symbol().starts_with("*") {
+                    for (arg, value) in args.iter().zip(params.to_vec()) {
+                        if arg.get_symbol().starts_with("*") {
+                            scope.insert(
+                                arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
+                                Type::Array(
+                                    params[params
+                                        .iter()
+                                        .position(|i| i.get_symbol() == value.get_symbol())
+                                        .unwrap()
+                                        ..params.len()]
+                                        .to_vec(),
+                                ),
+                            );
+                        } else {
+                            scope.insert(arg.get_symbol(), value);
+                        }
+                    }
+                } else {
+                    for (arg, value) in args.iter().zip(params.to_vec()) {
+                        scope.insert(arg.get_symbol(), value);
+                    }
                 }
 
                 if args.len() <= params.len() {
