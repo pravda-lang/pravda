@@ -101,6 +101,33 @@ fn main() {
             })),
         ),
         (
+            "=".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                Type::Bool({
+                    let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
+                    params.windows(2).all(|window| window[0] == window[1])
+                })
+            })),
+        ),
+        (
+            "|".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                Type::Bool({
+                    let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
+                    params.iter().any(|&x| x)
+                })
+            })),
+        ),
+        (
+            "&".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                Type::Bool({
+                    let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
+                    params.iter().all(|&x| x)
+                })
+            })),
+        ),
+        (
             "concat".to_string(),
             Type::Function(Function::Primitive(|params| {
                 let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
@@ -261,7 +288,8 @@ impl Type {
             }
             Type::Code(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
             Type::Null => 0.0,
-            _ => 0.0,
+            Type::Function(Function::UserDefined(value)) => value.len() as f64,
+            Type::Function(Function::Primitive(_)) => 0.0,
         }
     }
 
@@ -305,6 +333,17 @@ impl Type {
                 format!("<Built-in function: {:?}>", function)
             }
             Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+        }
+    }
+
+    fn get_bool(&self) -> bool {
+        match self {
+            Type::Number(value) => *value != 0.0,
+            Type::String(value) | Type::Symbol(value) => value.parse().unwrap_or_default(),
+            Type::Bool(value) => *value,
+            Type::Code(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
+            Type::Null => false,
+            Type::Function(_) => true,
         }
     }
 }
