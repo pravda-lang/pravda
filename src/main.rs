@@ -529,9 +529,9 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
         let lines = lines.trim().to_string();
         if lines.contains(" = ") {
             let lines: Vec<&str> = lines.split(" = ").collect();
-            let define = lines[0].split_whitespace().collect::<Vec<&str>>();
+            let define = tokenize(lines[0].to_string());
             if define.len() > 1 {
-                if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(define[0]) {
+                if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(&define[0]) {
                     let mut exist = exist.clone();
                     let args: Vec<Type> = define[1..define.len()]
                         .to_vec()
