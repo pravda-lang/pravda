@@ -8,7 +8,7 @@ fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         (
             "+".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -23,7 +23,7 @@ fn main() {
         ),
         (
             "-".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 if params.len() == 1 {
                     Type::Number(-params[0])
@@ -42,7 +42,7 @@ fn main() {
         ),
         (
             "*".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -57,7 +57,7 @@ fn main() {
         ),
         (
             "/".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -72,7 +72,7 @@ fn main() {
         ),
         (
             "%".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -87,7 +87,7 @@ fn main() {
         ),
         (
             "^".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -102,7 +102,7 @@ fn main() {
         ),
         (
             "=".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 Type::Bool({
                     let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
                     params.windows(2).all(|window| window[0] == window[1])
@@ -111,7 +111,7 @@ fn main() {
         ),
         (
             "|".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
                     params.iter().any(|&x| x)
@@ -120,7 +120,7 @@ fn main() {
         ),
         (
             "&".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
                     params.iter().all(|&x| x)
@@ -129,14 +129,14 @@ fn main() {
         ),
         (
             "concat".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
                 Type::String(params.join(""))
             })),
         ),
         (
             "repeat".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 Type::String(
                     if let Some(count) = params.get(0) {
                         count.get_string()
@@ -153,7 +153,7 @@ fn main() {
         ),
         (
             "input".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 Type::String(input(&if let Some(prompt) = params.get(0) {
                     prompt.get_string()
                 } else {
@@ -163,7 +163,7 @@ fn main() {
         ),
         (
             "print".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 println!(
                     "{}",
                     if let Some(count) = params.get(0) {
@@ -177,7 +177,7 @@ fn main() {
         ),
         (
             "read-file".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 if let Some(path) = params.get(0) {
                     let path = path.get_string(); // Create a binding to extend the lifetime
                     if let Ok(data) = read_to_string(Path::new(&path)) {
@@ -192,11 +192,11 @@ fn main() {
         ),
         (
             "list".to_string(),
-            Type::Function(Function::Primitive(|params| Type::List(params))),
+            Type::Function(Function::Primitive(|params, _| Type::List(params))),
         ),
         (
             "car".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 if let Some(list) = params.get(0) {
                     if let Some(car) = list.get_list().get(0) {
                         car.clone()
@@ -210,7 +210,7 @@ fn main() {
         ),
         (
             "cdr".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 if let Some(list) = params.get(0) {
                     if list.get_list().len() >= 2 {
                         Type::List(list.get_list()[1..list.get_list().len()].to_vec())
@@ -224,7 +224,7 @@ fn main() {
         ),
         (
             "len".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 if let Some(Type::List(list)) = params.get(0) {
                     Type::Number(list.len() as f64)
                 } else if let Some(Type::String(string)) = params.get(0) {
@@ -236,7 +236,7 @@ fn main() {
         ),
         (
             "range".to_string(),
-            Type::Function(Function::Primitive(|params| {
+            Type::Function(Function::Primitive(|params, _| {
                 if params.len() == 1 {
                     let mut range: Vec<Type> = vec![];
                     let mut current: f64 = 0.0;
@@ -266,6 +266,28 @@ fn main() {
                 }
             })),
         ),
+        (
+            "map".to_string(),
+            Type::Function(Function::Primitive(|params, memory| {
+                if params.len() >= 2 {
+                    let func = if let Type::Function(func) = params[1].clone() {
+                        func
+                    } else {
+                        return Type::Null;
+                    };
+                    let mut memory = memory.clone();
+                    Type::List(
+                        params[0]
+                            .get_list()
+                            .iter()
+                            .map(|i| call_function(func.clone(), vec![i.clone()], &mut memory))
+                            .collect(),
+                    )
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
@@ -276,7 +298,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.5.3");
+        println!("Pravda 0.5.4");
         loop {
             let mut code = String::new();
             loop {
@@ -496,7 +518,7 @@ impl Type {
 
 #[derive(Clone, Debug)]
 enum Function {
-    Primitive(fn(Vec<Type>) -> Type),
+    Primitive(fn(Vec<Type>, HashMap<String, Type>) -> Type),
     UserDefined(Vec<(Vec<Type>, (String, HashMap<String, Type>))>),
 }
 
@@ -661,7 +683,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     }
 
     if let Function::Primitive(function) = function {
-        function(params)
+        function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
         if let Some((program, scope)) = search_vec(object.clone(), params.clone()) {
             let mut scope = scope.clone();
