@@ -244,7 +244,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.5.1");
+        println!("Pravda 0.5.2");
         loop {
             let mut code = String::new();
             loop {
@@ -321,6 +321,21 @@ impl Type {
                 source.remove(source.rfind('"').unwrap_or_default());
                 source.to_string()
             })
+        } else if source.starts_with("(") && source.ends_with(")") && source.contains("->") {
+            source.remove(source.find("(").unwrap_or_default());
+            source.remove(source.rfind(")").unwrap_or_default());
+            let define: Vec<&str> = source.split("->").collect();
+            Type::Function(Function::UserDefined(vec![(
+                define[0]
+                    .split_whitespace()
+                    .into_iter()
+                    .map(|i| Type::parse(i.to_string()))
+                    .collect(),
+                (
+                    define[1..define.len()].join("->").to_string(),
+                    HashMap::new(),
+                ),
+            )]))
         } else if source.starts_with("(") && source.ends_with(")") {
             Type::Code({
                 source.remove(source.find("(").unwrap_or_default());
