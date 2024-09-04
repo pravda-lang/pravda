@@ -197,8 +197,8 @@ fn main() {
         (
             "car".to_string(),
             Type::Function(Function::Primitive(|params| {
-                if let Some(Type::List(list)) = params.get(0) {
-                    if let Some(car) = list.get(0) {
+                if let Some(list) = params.get(0) {
+                    if let Some(car) = list.get_list().get(0) {
                         car.clone()
                     } else {
                         Type::Null
@@ -211,9 +211,9 @@ fn main() {
         (
             "cdr".to_string(),
             Type::Function(Function::Primitive(|params| {
-                if let Some(Type::List(list)) = params.get(0) {
-                    if list.len() >= 2 {
-                        Type::List(list[1..list.len()].to_vec())
+                if let Some(list) = params.get(0) {
+                    if list.get_list().len() >= 2 {
+                        Type::List(list.get_list()[1..list.get_list().len()].to_vec())
                     } else {
                         Type::Null
                     }
@@ -452,6 +452,11 @@ impl Type {
     fn get_list(&self) -> Vec<Type> {
         match self {
             Type::List(value) => value.to_owned(),
+            Type::String(value) => value
+                .chars()
+                .into_iter()
+                .map(|c| Type::String(c.to_string()))
+                .collect(),
             other => vec![other.to_owned()],
         }
     }
