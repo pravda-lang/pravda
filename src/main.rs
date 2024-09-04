@@ -450,7 +450,6 @@ fn call_function(
             eval(program.to_string(), &mut scope)
         } else {
             if let Some((args, (program, scope))) = {
-                // 全て仮引数か?
                 let mut flag = None;
                 for item in {
                     let mut object = object.clone();
