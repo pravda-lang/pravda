@@ -222,6 +222,18 @@ fn main() {
                 }
             })),
         ),
+        (
+            "len".to_string(),
+            Type::Function(Function::Primitive(|params| {
+                if let Some(Type::List(list)) = params.get(0) {
+                    Type::Number(list.len() as f64)
+                } else if let Some(Type::String(string)) = params.get(0) {
+                    Type::Number(string.chars().count() as f64)
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
