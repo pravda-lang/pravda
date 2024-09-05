@@ -803,8 +803,6 @@ fn tokenize(input: String) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
     let mut in_parentheses: usize = 0;
-    let mut in_block: usize = 0;
-    let mut in_brackets: usize = 0;
     let mut in_quote = false;
 
     for c in input.chars() {
@@ -829,38 +827,38 @@ fn tokenize(input: String) -> Vec<String> {
                 }
             }
             '[' if !in_quote => {
-                if in_brackets != 0 {
-                    in_brackets += 1;
+                if in_parentheses != 0 {
+                    in_parentheses += 1;
                     current_token.push(c);
                 } else {
-                    in_brackets += 1;
+                    in_parentheses += 1;
                     current_token.push(c);
                 }
             }
             ']' if !in_quote => {
-                if in_brackets != 0 {
+                if in_parentheses != 0 {
                     current_token.push(c);
-                    in_brackets -= 1;
-                    if in_brackets == 0 {
+                    in_parentheses -= 1;
+                    if in_parentheses == 0 {
                         tokens.push(current_token.clone());
                         current_token.clear();
                     }
                 }
             }
             '{' if !in_quote => {
-                if in_block != 0 {
-                    in_block += 1;
+                if in_parentheses != 0 {
+                    in_parentheses += 1;
                     current_token.push(c);
                 } else {
-                    in_block += 1;
+                    in_parentheses += 1;
                     current_token.push(c);
                 }
             }
             '}' if !in_quote => {
-                if in_block != 0 {
+                if in_parentheses != 0 {
                     current_token.push(c);
-                    in_block -= 1;
-                    if in_block == 0 {
+                    in_parentheses -= 1;
+                    if in_parentheses == 0 {
                         tokens.push(current_token.clone());
                         current_token.clear();
                     }
@@ -882,7 +880,7 @@ fn tokenize(input: String) -> Vec<String> {
                 }
             }
             ' ' | '\n' | '\t' | '\r' | '　' => {
-                if in_block != 0 || in_parentheses != 0 || in_brackets != 0 || in_quote {
+                if in_parentheses != 0 || in_parentheses != 0 || in_parentheses != 0 || in_quote {
                     current_token.push(c);
                 } else {
                     if !current_token.is_empty() {
@@ -897,7 +895,7 @@ fn tokenize(input: String) -> Vec<String> {
         }
     }
 
-    if !(in_block != 0 || in_parentheses != 0 || in_brackets != 0 || in_quote)
+    if !(in_parentheses != 0 || in_parentheses != 0 || in_parentheses != 0 || in_quote)
         && !current_token.is_empty()
     {
         tokens.push(current_token);
