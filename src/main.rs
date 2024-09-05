@@ -346,7 +346,6 @@ fn main() {
                             result.push(item);
                         }
                     }
-                    dbg!(&result);
                     Type::List(result)
                 } else {
                     Type::Null
