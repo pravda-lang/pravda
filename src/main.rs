@@ -101,7 +101,7 @@ fn main() {
             })),
         ),
         (
-            "=".to_string(),
+            "equal".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
@@ -110,7 +110,7 @@ fn main() {
             })),
         ),
         (
-            "|".to_string(),
+            "or".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
@@ -119,7 +119,7 @@ fn main() {
             })),
         ),
         (
-            "&".to_string(),
+            "and".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
@@ -324,6 +324,30 @@ fn main() {
                             .map(|i| call_function(func.clone(), vec![i.clone()], &mut memory))
                             .collect(),
                     )
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
+            "filter".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() >= 2 {
+                    let func = if let Type::Function(func) = params[1].clone() {
+                        func
+                    } else {
+                        return Type::Null;
+                    };
+                    let mut memory = memory.clone();
+                    let mut result = Vec::new();
+
+                    for item in params[0].get_list() {
+                        if call_function(func.clone(), vec![item.clone()], &mut memory).get_bool() {
+                            result.push(item);
+                        }
+                    }
+                    dbg!(&result);
+                    Type::List(result)
                 } else {
                     Type::Null
                 }
