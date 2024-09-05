@@ -637,9 +637,9 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
             memory,
         )
     } else if let Type::Block(block) = &programs[0] {
-        run(block.to_owned(), memory)
+        run(block.to_owned(), &mut memory.clone())
     } else if let Type::Code(code) = &programs[0] {
-        eval(code.to_owned(), memory)
+        eval(code.to_owned(), &mut memory.clone())
     } else {
         if programs.len() == 1 {
             programs[0].to_owned()
