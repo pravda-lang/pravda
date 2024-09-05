@@ -599,6 +599,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                             is_equal = false;
                             tokens.push(vec![current_token.clone(), after_equal.clone()]);
                             current_token.clear();
+                            after_equal.clear();
                         } else {
                             tokens.push(vec![current_token.clone()]);
                             current_token.clear();
