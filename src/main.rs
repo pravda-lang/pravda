@@ -8,7 +8,7 @@ fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         (
             "+".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -23,7 +23,7 @@ fn main() {
         ),
         (
             "-".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 if params.len() == 1 {
                     Type::Number(-params[0])
@@ -42,7 +42,7 @@ fn main() {
         ),
         (
             "*".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -57,7 +57,7 @@ fn main() {
         ),
         (
             "/".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -72,7 +72,7 @@ fn main() {
         ),
         (
             "%".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -87,7 +87,7 @@ fn main() {
         ),
         (
             "^".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                 let mut result: f64 = if let Some(result) = params.get(0) {
                     result.to_owned()
@@ -102,7 +102,7 @@ fn main() {
         ),
         (
             "=".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
                     params.windows(2).all(|window| window[0] == window[1])
@@ -111,7 +111,7 @@ fn main() {
         ),
         (
             "|".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
                     params.iter().any(|&x| x)
@@ -120,7 +120,7 @@ fn main() {
         ),
         (
             "&".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<bool> = params.iter().map(|i| i.get_bool()).collect();
                     params.iter().all(|&x| x)
@@ -129,14 +129,14 @@ fn main() {
         ),
         (
             "concat".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
                 Type::String(params.join(""))
             })),
         ),
         (
             "repeat".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::String(
                     if let Some(count) = params.get(0) {
                         count.get_string()
@@ -153,7 +153,7 @@ fn main() {
         ),
         (
             "split".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::List({
                     let text = if let Some(count) = params.get(0) {
                         count.get_string().to_owned()
@@ -175,7 +175,7 @@ fn main() {
         ),
         (
             "join".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::String({
                     let list: Vec<String> = if let Some(count) = params.get(0) {
                         count.get_list().iter().map(|i| i.get_string()).collect()
@@ -194,7 +194,7 @@ fn main() {
         ),
         (
             "input".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 Type::String(input(&if let Some(prompt) = params.get(0) {
                     prompt.get_string()
                 } else {
@@ -204,7 +204,7 @@ fn main() {
         ),
         (
             "print".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 println!(
                     "{}",
                     if let Some(count) = params.get(0) {
@@ -218,7 +218,7 @@ fn main() {
         ),
         (
             "read-file".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 if let Some(path) = params.get(0) {
                     let path = path.get_string(); // Create a binding to extend the lifetime
                     if let Ok(data) = read_to_string(Path::new(&path)) {
@@ -233,11 +233,11 @@ fn main() {
         ),
         (
             "list".to_string(),
-            Type::Function(Function::Primitive(|params, _| Type::List(params))),
+            Type::Function(Function::BuiltIn(|params, _| Type::List(params))),
         ),
         (
             "car".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 if let Some(list) = params.get(0) {
                     if let Some(car) = list.get_list().get(0) {
                         car.clone()
@@ -251,7 +251,7 @@ fn main() {
         ),
         (
             "cdr".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 if let Some(list) = params.get(0) {
                     if list.get_list().len() >= 2 {
                         Type::List(list.get_list()[1..list.get_list().len()].to_vec())
@@ -265,7 +265,7 @@ fn main() {
         ),
         (
             "len".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 if let Some(Type::List(list)) = params.get(0) {
                     Type::Number(list.len() as f64)
                 } else if let Some(Type::String(string)) = params.get(0) {
@@ -277,7 +277,7 @@ fn main() {
         ),
         (
             "range".to_string(),
-            Type::Function(Function::Primitive(|params, _| {
+            Type::Function(Function::BuiltIn(|params, _| {
                 if params.len() == 1 {
                     let mut range: Vec<Type> = vec![];
                     let mut current: f64 = 0.0;
@@ -309,7 +309,7 @@ fn main() {
         ),
         (
             "map".to_string(),
-            Type::Function(Function::Primitive(|params, memory| {
+            Type::Function(Function::BuiltIn(|params, memory| {
                 if params.len() >= 2 {
                     let func = if let Type::Function(func) = params[1].clone() {
                         func
@@ -471,7 +471,7 @@ impl Type {
             Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
             Type::Null => 0.0,
             Type::Function(Function::UserDefined(value)) => value.len() as f64,
-            Type::Function(Function::Primitive(_)) => 0.0,
+            Type::Function(Function::BuiltIn(_)) => 0.0,
             Type::Code(value) | Type::Block(value) => value.len() as f64,
         }
     }
@@ -491,7 +491,7 @@ impl Type {
                     .join(" ")
             ),
             Type::Null => "null".to_string(),
-            Type::Function(Function::Primitive(function)) => {
+            Type::Function(Function::BuiltIn(function)) => {
                 format!("<Built-in function: {:?}>", function)
             }
             Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
@@ -515,7 +515,7 @@ impl Type {
                     .join(" ")
             ),
             Type::Null => "null".to_string(),
-            Type::Function(Function::Primitive(function)) => {
+            Type::Function(Function::BuiltIn(function)) => {
                 format!("<Built-in function: {:?}>", function)
             }
             Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
@@ -550,7 +550,7 @@ impl Type {
 
 #[derive(Clone, Debug)]
 enum Function {
-    Primitive(fn(Vec<Type>, HashMap<String, Type>) -> Type),
+    BuiltIn(fn(Vec<Type>, HashMap<String, Type>) -> Type),
     UserDefined(Vec<(Vec<Type>, (String, HashMap<String, Type>))>),
 }
 
@@ -784,7 +784,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         }
     }
 
-    if let Function::Primitive(function) = function {
+    if let Function::BuiltIn(function) = function {
         function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
         if let Some((program, scope)) = search_vec(object.clone(), params.clone()) {
