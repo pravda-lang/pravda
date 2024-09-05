@@ -298,7 +298,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.5.4");
+        println!("Pravda 0.6.0");
         loop {
             let mut code = String::new();
             loop {
@@ -350,7 +350,8 @@ fn search_vec(
 
 #[derive(Clone, Debug)]
 enum Type {
-    Code(Vec<Type>),
+    Code(String),
+    Block(String),
     Symbol(String),
     Function(Function),
     Number(f64),
@@ -394,10 +395,13 @@ impl Type {
             Type::Code({
                 source.remove(source.find("(").unwrap_or_default());
                 source.remove(source.rfind(")").unwrap_or_default());
-                tokenize(source)
-                    .into_iter()
-                    .map(|item| Type::parse(item.to_string()))
-                    .collect()
+                source
+            })
+        } else if source.starts_with("{") && source.ends_with("}") {
+            Type::Block({
+                source.remove(source.find("{").unwrap_or_default());
+                source.remove(source.rfind("}").unwrap_or_default());
+                source
             })
         } else if source.starts_with("[") && source.ends_with("]") {
             Type::List({
@@ -424,12 +428,11 @@ impl Type {
                     0.0
                 }
             }
-            Type::Code(value) | Type::List(value) => {
-                value.get(0).unwrap_or(&Type::Null).get_number()
-            }
+            Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
             Type::Null => 0.0,
             Type::Function(Function::UserDefined(value)) => value.len() as f64,
             Type::Function(Function::Primitive(_)) => 0.0,
+            Type::Code(value) | Type::Block(value) => value.len() as f64,
         }
     }
 
@@ -438,14 +441,7 @@ impl Type {
             Type::Number(value) => value.to_string(),
             Type::String(value) | Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => value.to_string(),
-            Type::Code(value) => format!(
-                "({})",
-                value
-                    .iter()
-                    .map(|i| i.get_string())
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            ),
+            Type::Code(value) => format!("({})", value),
             Type::List(value) => format!(
                 "[{}]",
                 value
@@ -459,6 +455,7 @@ impl Type {
                 format!("<Built-in function: {:?}>", function)
             }
             Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+            Type::Block(value) => format!("{{ {} }}", value),
         }
     }
 
@@ -468,14 +465,7 @@ impl Type {
             Type::String(value) => format!("\"{}\"", value),
             Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => value.to_string(),
-            Type::Code(value) => format!(
-                "({})",
-                value
-                    .iter()
-                    .map(|i| i.get_symbol())
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            ),
+            Type::Code(value) => format!("({})", value),
             Type::List(value) => format!(
                 "[{}]",
                 value
@@ -489,6 +479,7 @@ impl Type {
                 format!("<Built-in function: {:?}>", function)
             }
             Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+            Type::Block(value) => format!("{{ {} }}", value),
         }
     }
 
@@ -497,9 +488,10 @@ impl Type {
             Type::Number(value) => *value != 0.0,
             Type::String(value) | Type::Symbol(value) => value.parse().unwrap_or_default(),
             Type::Bool(value) => *value,
-            Type::Code(value) | Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
+            Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
             Type::Null => false,
             Type::Function(_) => true,
+            Type::Code(value) | Type::Block(value) => !value.is_empty(),
         }
     }
 
@@ -523,7 +515,7 @@ enum Function {
 }
 
 fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
-    let source: Vec<&str> = source.split(";").collect();
+    let source = tokenize_program(source);
     let mut result = Type::Null;
     for lines in source {
         let lines = lines.trim().to_string();
@@ -578,6 +570,43 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     result
 }
 
+fn tokenize_program(input: String) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current_token = String::new();
+    let mut in_parentheses: usize = 0;
+
+    for c in input.chars() {
+        match c {
+            '{' => {
+                in_parentheses += 1;
+                current_token.push(c);
+            }
+            '}' => {
+                current_token.push(c);
+                in_parentheses -= 1;
+            }
+            ';' => {
+                if in_parentheses != 0 {
+                    current_token.push(c);
+                } else {
+                    if !current_token.is_empty() {
+                        tokens.push(current_token.trim().to_string());
+                        current_token.clear();
+                    }
+                }
+            }
+            _ => {
+                current_token.push(c);
+            }
+        }
+    }
+
+    if in_parentheses == 0 && !current_token.is_empty() {
+        tokens.push(current_token.to_string());
+    }
+    tokens
+}
+
 fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     let programs: Vec<Type> = tokenize(programs)
         .iter()
@@ -607,6 +636,10 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
             programs[1..programs.len()].to_vec(),
             memory,
         )
+    } else if let Type::Block(block) = &programs[0] {
+        run(block.to_owned(), memory)
+    } else if let Type::Code(code) = &programs[0] {
+        eval(code.to_owned(), memory)
     } else {
         if programs.len() == 1 {
             programs[0].to_owned()
@@ -620,22 +653,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     let mut params: Vec<Type> = vec![];
     for i in args {
         if let Type::Code(code) = i.clone() {
-            params.push(eval(
-                {
-                    let temp = Type::Code(code)
-                        .get_string()
-                        .trim()
-                        .chars()
-                        .collect::<Vec<char>>();
-                    temp[1..temp.len() - 1]
-                        .to_vec()
-                        .iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<String>>()
-                        .join("")
-                },
-                memory,
-            ))
+            params.push(eval(code, memory))
         } else if let Type::Symbol(name) = i.clone() {
             if name.starts_with("*") {
                 let name = name[1..name.len()].to_string();
@@ -648,22 +666,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                         params.push(j.to_owned())
                     }
                 } else if let Type::Code(code) = Type::parse(name.clone()) {
-                    let result = eval(
-                        {
-                            let temp = Type::Code(code)
-                                .get_string()
-                                .trim()
-                                .chars()
-                                .collect::<Vec<char>>();
-                            temp[1..temp.len() - 1]
-                                .to_vec()
-                                .iter()
-                                .map(|x| x.to_string())
-                                .collect::<Vec<String>>()
-                                .join("")
-                        },
-                        memory,
-                    );
+                    let result = eval(code, memory);
                     for j in result.get_list() {
                         params.push(j.to_owned())
                     }
@@ -734,7 +737,11 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                 }
 
                 if args.len() <= params.len() {
-                    eval(program.to_string(), &mut scope)
+                    if let Type::Block(block) = Type::parse(program.clone()) {
+                        run(block, &mut scope)
+                    } else {
+                        eval(program.to_string(), &mut scope)
+                    }
                 } else {
                     let mut object = object.clone();
                     object.push((
@@ -756,6 +763,7 @@ fn tokenize(input: String) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
     let mut in_parentheses: usize = 0;
+    let mut in_block: usize = 0;
     let mut in_brackets: usize = 0;
     let mut in_quote = false;
 
@@ -799,6 +807,25 @@ fn tokenize(input: String) -> Vec<String> {
                     }
                 }
             }
+            '{' if !in_quote => {
+                if in_block != 0 {
+                    in_block += 1;
+                    current_token.push(c);
+                } else {
+                    in_block += 1;
+                    current_token.push(c);
+                }
+            }
+            '}' if !in_quote => {
+                if in_block != 0 {
+                    current_token.push(c);
+                    in_block -= 1;
+                    if in_block == 0 {
+                        tokens.push(current_token.clone());
+                        current_token.clear();
+                    }
+                }
+            }
             '"' => {
                 if in_parentheses == 0 {
                     if in_quote {
@@ -815,7 +842,7 @@ fn tokenize(input: String) -> Vec<String> {
                 }
             }
             ' ' | '\n' | '\t' | '\r' | '　' => {
-                if in_parentheses != 0 || in_brackets != 0 || in_quote {
+                if in_block != 0 || in_parentheses != 0 || in_brackets != 0 || in_quote {
                     current_token.push(c);
                 } else {
                     if !current_token.is_empty() {
@@ -830,7 +857,9 @@ fn tokenize(input: String) -> Vec<String> {
         }
     }
 
-    if !(in_parentheses != 0 || in_brackets != 0 || in_quote) && !current_token.is_empty() {
+    if !(in_block != 0 || in_parentheses != 0 || in_brackets != 0 || in_quote)
+        && !current_token.is_empty()
+    {
         tokens.push(current_token);
     }
     tokens
