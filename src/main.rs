@@ -572,16 +572,28 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
     for c in input.chars() {
         match c {
             '{' => {
+                if is_equal {
+                    after_equal.push(c);
+                } else {
+                    current_token.push(c);
+                }
                 in_parentheses += 1;
-                current_token.push(c);
             }
             '}' => {
-                current_token.push(c);
+                if is_equal {
+                    after_equal.push(c);
+                } else {
+                    current_token.push(c);
+                }
                 in_parentheses -= 1;
             }
             ';' => {
                 if in_parentheses != 0 {
-                    current_token.push(c);
+                    if is_equal {
+                        after_equal.push(c);
+                    } else {
+                        current_token.push(c);
+                    }
                 } else {
                     if !current_token.is_empty() {
                         if is_equal {
@@ -597,7 +609,11 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
             }
             '=' => {
                 if in_parentheses != 0 {
-                    current_token.push(c);
+                    if is_equal {
+                        after_equal.push(c);
+                    } else {
+                        current_token.push(c);
+                    }
                 } else {
                     is_equal = true;
                 }
