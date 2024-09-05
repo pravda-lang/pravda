@@ -339,7 +339,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.6.0");
+        println!("Pravda 0.6.1");
         loop {
             let mut code = String::new();
             loop {
@@ -711,9 +711,27 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
             memory,
         )
     } else if let Type::Block(block) = &programs[0] {
-        run(block.to_owned(), &mut memory.clone())
+        let result = run(block.to_owned(), &mut memory.clone());
+        if let Type::Function(func) = result {
+            call_function(
+                func,
+                programs[1..programs.len()].to_vec(),
+                &mut memory.clone(),
+            )
+        } else {
+            result
+        }
     } else if let Type::Code(code) = &programs[0] {
-        eval(code.to_owned(), &mut memory.clone())
+        let result = eval(code.to_owned(), &mut memory.clone());
+        if let Type::Function(func) = result {
+            call_function(
+                func,
+                programs[1..programs.len()].to_vec(),
+                &mut memory.clone(),
+            )
+        } else {
+            result
+        }
     } else {
         if programs.len() == 1 {
             programs[0].to_owned()
