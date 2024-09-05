@@ -518,9 +518,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let source = tokenize_program(source);
     let mut result = Type::Null;
     for lines in source {
-        let lines = lines.trim().to_string();
-        if lines.contains(" = ") {
-            let lines: Vec<&str> = lines.split(" = ").collect();
+        if lines.len() == 2 {
             let define = tokenize(lines[0].to_string());
             if define.len() > 1 {
                 if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(&define[0]) {
@@ -531,13 +529,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         .map(|i| Type::parse(i.to_string()))
                         .collect();
                     if exist[0].0.len() == args.len() {
-                        exist.push((
-                            args,
-                            (
-                                lines[1..lines.len()].to_vec().join(" = "),
-                                memory.to_owned(),
-                            ),
-                        ));
+                        exist.push((args, (lines[1].clone(), memory.to_owned())));
                         let object = Type::Function(Function::UserDefined(exist));
                         result = object.clone();
                         memory.insert(define[0].to_string(), object);
@@ -564,15 +556,17 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                 memory.insert(define[0].to_string(), result.clone());
             }
         } else {
-            result = eval(lines.to_string(), memory);
+            result = eval(lines[0].to_string(), memory);
         }
     }
     result
 }
 
-fn tokenize_program(input: String) -> Vec<String> {
-    let mut tokens = Vec::new();
+fn tokenize_program(input: String) -> Vec<Vec<String>> {
+    let mut tokens: Vec<Vec<String>> = Vec::new();
     let mut current_token = String::new();
+    let mut after_equal = String::new();
+    let mut is_equal = false;
     let mut in_parentheses: usize = 0;
 
     for c in input.chars() {
@@ -590,19 +584,42 @@ fn tokenize_program(input: String) -> Vec<String> {
                     current_token.push(c);
                 } else {
                     if !current_token.is_empty() {
-                        tokens.push(current_token.trim().to_string());
-                        current_token.clear();
+                        if is_equal {
+                            is_equal = false;
+                            tokens.push(vec![current_token.clone(), after_equal.clone()]);
+                            current_token.clear();
+                        } else {
+                            tokens.push(vec![current_token.clone()]);
+                            current_token.clear();
+                        }
                     }
                 }
             }
+            '=' => {
+                if in_parentheses != 0 {
+                    current_token.push(c);
+                } else {
+                    is_equal = true;
+                }
+            }
             _ => {
-                current_token.push(c);
+                if is_equal {
+                    after_equal.push(c);
+                } else {
+                    current_token.push(c);
+                }
             }
         }
     }
 
     if in_parentheses == 0 && !current_token.is_empty() {
-        tokens.push(current_token.to_string());
+        if is_equal {
+            tokens.push(vec![current_token.clone(), after_equal]);
+            current_token.clear();
+        } else {
+            tokens.push(vec![current_token.clone()]);
+            current_token.clear();
+        }
     }
     tokens
 }
@@ -653,7 +670,9 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     let mut params: Vec<Type> = vec![];
     for i in args {
         if let Type::Code(code) = i.clone() {
-            params.push(eval(code, memory))
+            params.push(eval(code, &mut memory.clone()))
+        } else if let Type::Block(block) = i.clone() {
+            params.push(run(block, &mut memory.clone()))
         } else if let Type::Symbol(name) = i.clone() {
             if name.starts_with("*") {
                 let name = name[1..name.len()].to_string();
@@ -667,6 +686,11 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                     }
                 } else if let Type::Code(code) = Type::parse(name.clone()) {
                     let result = eval(code, memory);
+                    for j in result.get_list() {
+                        params.push(j.to_owned())
+                    }
+                } else if let Type::Block(code) = Type::parse(name.clone()) {
+                    let result = run(code, memory);
                     for j in result.get_list() {
                         params.push(j.to_owned())
                     }
