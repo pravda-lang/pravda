@@ -152,6 +152,47 @@ fn main() {
             })),
         ),
         (
+            "split".to_string(),
+            Type::Function(Function::Primitive(|params, _| {
+                Type::List({
+                    let text = if let Some(count) = params.get(0) {
+                        count.get_string().to_owned()
+                    } else {
+                        return Type::Null;
+                    };
+                    let key = if let Some(count) = params.get(1) {
+                        count.get_string()
+                    } else {
+                        return Type::Null;
+                    };
+
+                    text.split(&key)
+                        .into_iter()
+                        .map(|i| Type::String(i.to_string()))
+                        .collect()
+                })
+            })),
+        ),
+        (
+            "join".to_string(),
+            Type::Function(Function::Primitive(|params, _| {
+                Type::String({
+                    let list: Vec<String> = if let Some(count) = params.get(0) {
+                        count.get_list().iter().map(|i| i.get_string()).collect()
+                    } else {
+                        return Type::Null;
+                    };
+                    let key = if let Some(count) = params.get(1) {
+                        count.get_string()
+                    } else {
+                        return Type::Null;
+                    };
+
+                    list.join(&key)
+                })
+            })),
+        ),
+        (
             "input".to_string(),
             Type::Function(Function::Primitive(|params, _| {
                 Type::String(input(&if let Some(prompt) = params.get(0) {
