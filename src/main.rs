@@ -376,14 +376,13 @@ impl Type {
                 source.remove(source.rfind('"').unwrap_or_default());
                 source.to_string()
             })
-        } else if source.starts_with("(") && source.ends_with(")") && source.contains("->") {
-            source.remove(source.find("(").unwrap_or_default());
+        } else if source.starts_with("lambda(") && source.ends_with(")") && source.contains("->") {
+            source = source.replacen("lambda(", "", 1);
             source.remove(source.rfind(")").unwrap_or_default());
             let define: Vec<&str> = source.split("->").collect();
             Type::Function(Function::UserDefined(vec![(
-                define[0]
-                    .split_whitespace()
-                    .into_iter()
+                tokenize(define[0].to_string())
+                    .iter()
                     .map(|i| Type::parse(i.to_string()))
                     .collect(),
                 (
