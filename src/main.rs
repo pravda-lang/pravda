@@ -749,7 +749,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         } else if let Type::Block(block) = i.clone() {
             params.push(run(block, &mut memory.clone()))
         } else if let Type::Symbol(name) = i.clone() {
-            if name.starts_with("*") {
+            if name.starts_with("~") {
                 let name = name[1..name.len()].to_string();
                 if let Some(value) = memory.get(&name) {
                     for j in value.get_list() {
@@ -811,9 +811,9 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
             } {
                 let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
                 scope.extend(memory.to_owned());
-                if args[args.len() - 1].get_symbol().starts_with("*") {
+                if args[args.len() - 1].get_symbol().starts_with("~") {
                     for (arg, value) in args.iter().zip(params.to_vec()) {
-                        if arg.get_symbol().starts_with("*") {
+                        if arg.get_symbol().starts_with("~") {
                             scope.insert(
                                 arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
                                 Type::List(
