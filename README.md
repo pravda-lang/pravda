@@ -6,8 +6,8 @@ We look forward to seeing your contribute!
 
 ## Screen-shots
 
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/b1c5d737-1f26-464c-9d6a-a38e5c53b6e1">
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/838650cb-7f8d-4ef8-949f-d05326b29dab">
+<img width="731" alt="image" src="https://github.com/user-attachments/assets/d06baf7b-5bc6-4392-a768-af47a46e9ef2">
+<img width="731" alt="image" src="https://github.com/user-attachments/assets/8a4b793a-6cbf-4221-ad6d-e51e7936c64c">
 
 ## Install
 
