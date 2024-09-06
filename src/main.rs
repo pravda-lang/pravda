@@ -752,13 +752,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
 fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     let programs: Vec<Type> = tokenize(programs)
         .iter()
-        .map(|i| {
-            if i.starts_with("@") {
-                Type::parse(i[1..i.len()].to_string())
-            } else {
-                Type::parse(i.to_owned())
-            }
-        })
+        .map(|i| Type::parse(i.to_owned()))
         .collect();
     if programs.is_empty() {
         return Type::Null;
@@ -847,6 +841,8 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                 } else {
                     params.push(value)
                 }
+            } else if name.starts_with("@") {
+                params.push(Type::parse(name[1..name.len()].to_string()))
             } else {
                 if let Some(value) = memory.get(&name) {
                     params.push(value.to_owned())
