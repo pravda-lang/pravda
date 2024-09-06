@@ -630,7 +630,7 @@ impl Type {
     fn get_number(&self) -> f64 {
         match self {
             Type::Number(value) => *value,
-            Type::String(value) | Type::Symbol(value) => value.parse().unwrap_or_default(),
+            Type::String(value) | Type::Symbol(value) => value.trim().parse().unwrap_or_default(),
             Type::Bool(value) => {
                 if *value {
                     1.0
@@ -696,7 +696,7 @@ impl Type {
     fn get_bool(&self) -> bool {
         match self {
             Type::Number(value) => *value != 0.0,
-            Type::String(value) | Type::Symbol(value) => value.parse().unwrap_or_default(),
+            Type::String(value) | Type::Symbol(value) => value.trim().parse().unwrap_or_default(),
             Type::Bool(value) => *value,
             Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
             Type::Null => false,
