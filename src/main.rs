@@ -413,6 +413,21 @@ fn main() {
                 }
             })),
         ),
+        (
+            "import".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                let mut memory = memory.clone();
+                if params.len() >= 1 {
+                    if let Ok(file) = read_to_string(Path::new(&params[0].get_string())) {
+                        run(file, &mut memory)
+                    } else {
+                        Type::Null
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
