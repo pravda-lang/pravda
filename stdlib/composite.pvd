@@ -1,5 +1,0 @@
-composite func1 func2 = {
-    lambda(~n -> {
-        func1 (func2 ~n)
-    })
-}
