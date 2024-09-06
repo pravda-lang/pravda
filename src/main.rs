@@ -490,6 +490,7 @@ fn main() {
 
     let args: Vec<String> = args().collect();
     if args.len() >= 2 {
+        // Run from script file
         if let Ok(code) = read_to_string(Path::new(&args[1])) {
             run(code, memory);
         } else {
@@ -497,6 +498,8 @@ fn main() {
         }
     } else {
         println!("Pravda 0.6.2");
+
+        // REPL
         loop {
             let mut code = String::new();
             loop {
