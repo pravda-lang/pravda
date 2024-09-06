@@ -186,7 +186,6 @@ fn main() {
                     };
 
                     text.split(&key)
-                        .into_iter()
                         .map(|i| Type::String(i.to_string()))
                         .collect()
                 })
@@ -446,6 +445,10 @@ fn main() {
                 }
             })),
         ),
+        (
+            "cmd-args".to_string(),
+            Type::List(args().map(|i| Type::String(i)).collect()),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
@@ -577,7 +580,7 @@ impl Type {
                 source.remove(source.find("[").unwrap_or_default());
                 source.remove(source.rfind("]").unwrap_or_default());
                 tokenize_expr(source)
-                    .into_iter()
+                    .iter()
                     .map(|item| Type::parse(item.to_string()))
                     .collect()
             })
@@ -668,11 +671,7 @@ impl Type {
     fn get_list(&self) -> Vec<Type> {
         match self {
             Type::List(value) => value.to_owned(),
-            Type::String(value) => value
-                .chars()
-                .into_iter()
-                .map(|c| Type::String(c.to_string()))
-                .collect(),
+            Type::String(value) => value.chars().map(|c| Type::String(c.to_string())).collect(),
             other => vec![other.to_owned()],
         }
     }
