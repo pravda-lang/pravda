@@ -6,12 +6,6 @@ We look forward to seeing your contribute!
 
 Usage is you can see in the [Document](https://pravda-lang.github.io/document/)
 
-## Screen-shots
-
-<img width="731" alt="image" src="https://pravda-lang.github.io/image1.png">
-<img width="731" alt="image" src="https://pravda-lang.github.io/image2.png">
-<img width="731" alt="image" src="https://pravda-lang.github.io/image3.png">
-
 ## Install
 
 You can enter below command on your shell to install Pravda.
