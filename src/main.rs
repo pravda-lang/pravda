@@ -111,6 +111,24 @@ fn main() {
             })),
         ),
         (
+            "less-than".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                Type::Bool({
+                    let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
+                    params.windows(2).all(|window| window[0] == window[1])
+                })
+            })),
+        ),
+        (
+            "greater-than".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                Type::Bool({
+                    let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
+                    params.windows(2).all(|window| window[0] == window[1])
+                })
+            })),
+        ),
+        (
             "or".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
