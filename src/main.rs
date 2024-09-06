@@ -352,6 +352,51 @@ fn main() {
                 }
             })),
         ),
+        (
+            "for".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() >= 2 {
+                    let func = if let Type::Function(func) = params[1].clone() {
+                        func
+                    } else {
+                        return Type::Null;
+                    };
+                    let mut memory = memory.clone();
+
+                    for item in params[0].get_list() {
+                        call_function(func.clone(), vec![item.clone()], &mut memory);
+                    }
+                }
+                Type::Null
+            })),
+        ),
+        (
+            "if".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                let mut memory = memory.clone();
+                if params.len() >= 2 {
+                    if params[0].get_bool() {
+                        match params[1].clone() {
+                            Type::Code(code) => eval(code, &mut memory),
+                            Type::Block(block) => run(block, &mut memory),
+                            other => other,
+                        }
+                    } else {
+                        if params.len() >= 3 {
+                            match params[2].clone() {
+                                Type::Code(code) => eval(code, &mut memory),
+                                Type::Block(block) => run(block, &mut memory),
+                                other => other,
+                            }
+                        } else {
+                            Type::Null
+                        }
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
@@ -362,7 +407,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.6.1");
+        println!("Pravda 0.6.2");
         loop {
             let mut code = String::new();
             loop {
@@ -707,7 +752,13 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
 fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
     let programs: Vec<Type> = tokenize(programs)
         .iter()
-        .map(|i| Type::parse(i.to_owned()))
+        .map(|i| {
+            if i.starts_with("@") {
+                Type::parse(i[1..i.len()].to_string())
+            } else {
+                Type::parse(i.to_owned())
+            }
+        })
         .collect();
     if programs.is_empty() {
         return Type::Null;
@@ -774,26 +825,27 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         } else if let Type::Symbol(name) = i.clone() {
             if name.starts_with("~") {
                 let name = name[1..name.len()].to_string();
+                let value = Type::parse(name.clone());
                 if let Some(value) = memory.get(&name) {
                     for j in value.get_list() {
                         params.push(j.to_owned())
                     }
-                } else if let Type::List(list) = Type::parse(name.clone()) {
+                } else if let Type::List(list) = value {
                     for j in list {
                         params.push(j.to_owned())
                     }
-                } else if let Type::Code(code) = Type::parse(name.clone()) {
+                } else if let Type::Code(code) = value {
                     let result = eval(code, memory);
                     for j in result.get_list() {
                         params.push(j.to_owned())
                     }
-                } else if let Type::Block(code) = Type::parse(name.clone()) {
+                } else if let Type::Block(code) = value {
                     let result = run(code, memory);
                     for j in result.get_list() {
                         params.push(j.to_owned())
                     }
                 } else {
-                    params.push(Type::parse(name))
+                    params.push(value)
                 }
             } else {
                 if let Some(value) = memory.get(&name) {
