@@ -10,7 +10,7 @@ Usage is you can see in the [Document](https://github.com/pravda-lang/pravda/wik
 
 <img width="731" alt="image" src="https://github.com/user-attachments/assets/d06baf7b-5bc6-4392-a768-af47a46e9ef2">
 <img width="731" alt="image" src="https://github.com/user-attachments/assets/8a4b793a-6cbf-4221-ad6d-e51e7936c64c">
-<img width="731" alt="image" src="https://github.com/user-attachments/assets/954199ce-5dec-42a8-99c9-d461685b43b6">
+<img width="731" alt="image" src="https://github.com/user-attachments/assets/4ec84747-1dc6-444c-a8ef-7f7b336d9db2">
 
 ## Install
 
