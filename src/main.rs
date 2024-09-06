@@ -428,6 +428,60 @@ fn main() {
                 }
             })),
         ),
+        (
+            "composite".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() == 2 {
+                    if let (Type::Function(func1), Type::Function(func2)) =
+                        (params[0].clone(), params[1].clone())
+                    {
+                        Type::Function(Function::UserDefined(vec![(
+                            vec![Type::Symbol("~i".to_string())],
+                            (
+                                format!(
+                                    "lambda({arg1} -> ({}) {arg1}) (lambda({arg2} -> ({}) {arg2}) ~i)",
+                                    if let Function::UserDefined(obj) = func1.clone() {
+                                        obj[0].1 .0.clone()
+                                    } else {
+                                        return Type::Null;
+                                    },
+                                    if let Function::UserDefined(obj) = func2.clone() {
+                                        obj[0].1 .0.clone()
+                                    } else {
+                                        return Type::Null;
+                                    },
+                                    arg1 = if let Function::UserDefined(obj) = func1 {
+                                        obj[0]
+                                            .0
+                                            .iter()
+                                            .map(|i| i.get_symbol())
+                                            .collect::<Vec<String>>()
+                                            .join(" ")
+                                    } else {
+                                        return Type::Null;
+                                    },
+                                    arg2 = if let Function::UserDefined(obj) = func2 {
+                                        obj[0]
+                                            .0
+                                            .iter()
+                                            .map(|i| i.get_symbol())
+                                            .collect::<Vec<String>>()
+                                            .join(" ")
+                                    } else {
+                                        return Type::Null;
+                                    }
+                                ),
+                                memory,
+                            ),
+                        )]))
+                    } else {
+                        Type::Null
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
