@@ -115,7 +115,7 @@ fn main() {
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
-                    params.windows(2).all(|window| window[0] == window[1])
+                    params.windows(2).all(|window| window[0] < window[1])
                 })
             })),
         ),
@@ -124,7 +124,7 @@ fn main() {
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
                     let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
-                    params.windows(2).all(|window| window[0] == window[1])
+                    params.windows(2).all(|window| window[0] > window[1])
                 })
             })),
         ),
