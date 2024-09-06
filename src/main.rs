@@ -397,6 +397,21 @@ fn main() {
                 }
             })),
         ),
+        (
+            "eval".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                let mut memory = memory.clone();
+                if params.len() >= 1 {
+                    match params[0].clone() {
+                        Type::Code(code) => eval(code, &mut memory),
+                        Type::Block(block) => run(block, &mut memory),
+                        other => other,
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
@@ -845,7 +860,14 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                 params.push(Type::parse(name[1..name.len()].to_string()))
             } else {
                 if let Some(value) = memory.get(&name) {
-                    params.push(value.to_owned())
+                    if value.get_symbol().starts_with("@") {
+                        let value = Type::parse(
+                            value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                        );
+                        params.push(value)
+                    } else {
+                        params.push(value.to_owned())
+                    }
                 } else {
                     params.push(i.to_owned())
                 }
