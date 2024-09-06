@@ -4,6 +4,8 @@ A functional programming language that best of both worlds between Haskell and L
 This project is still developing in the middle.
 We look forward to seeing your contribute!
 
+Usage is you can see in the [Document](https://github.com/KajizukaTaichi/pravda/wiki/Document)
+
 ## Screen-shots
 
 <img width="731" alt="image" src="https://github.com/user-attachments/assets/d06baf7b-5bc6-4392-a768-af47a46e9ef2">
