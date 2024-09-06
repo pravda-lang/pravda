@@ -449,6 +449,43 @@ fn main() {
             "cmd-args".to_string(),
             Type::List(args().map(|i| Type::String(i)).collect()),
         ),
+        (
+            "cast".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                if params.len() >= 2 {
+                    match params[1].get_string().as_str() {
+                        "string" => Type::String(params[0].get_string()),
+                        "number" => Type::Number(params[0].get_number()),
+                        "symbol" => Type::Symbol(params[0].get_symbol()),
+                        "list" => Type::List(params[0].get_list()),
+                        "bool" => Type::Bool(params[0].get_bool()),
+                        _ => Type::Null,
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
+            "type".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                if params.len() >= 1 {
+                    match params[0] {
+                        Type::Number(_) => Type::String("number".to_string()),
+                        Type::String(_) => Type::String("string".to_string()),
+                        Type::Bool(_) => Type::String("bool".to_string()),
+                        Type::List(_) => Type::String("list".to_string()),
+                        Type::Expr(_) => Type::String("expr".to_string()),
+                        Type::Block(_) => Type::String("block".to_string()),
+                        Type::Symbol(_) => Type::String("symbol".to_string()),
+                        Type::Function(_) => Type::String("function".to_string()),
+                        Type::Null => Type::String("null".to_string()),
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
