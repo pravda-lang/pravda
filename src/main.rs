@@ -378,14 +378,14 @@ fn main() {
                 if params.len() >= 2 {
                     if params[0].get_bool() {
                         match params[1].clone() {
-                            Type::Code(code) => eval(code, &mut memory),
+                            Type::Expr(code) => eval(code, &mut memory),
                             Type::Block(block) => run(block, &mut memory),
                             other => other,
                         }
                     } else {
                         if params.len() >= 3 {
                             match params[2].clone() {
-                                Type::Code(code) => eval(code, &mut memory),
+                                Type::Expr(code) => eval(code, &mut memory),
                                 Type::Block(block) => run(block, &mut memory),
                                 other => other,
                             }
@@ -404,7 +404,7 @@ fn main() {
                 let mut memory = memory.clone();
                 if params.len() >= 1 {
                     match params[0].clone() {
-                        Type::Code(code) => eval(code, &mut memory),
+                        Type::Expr(code) => eval(code, &mut memory),
                         Type::Block(block) => run(block, &mut memory),
                         other => other,
                     }
@@ -456,6 +456,7 @@ fn main() {
     }
 }
 
+/// Get command-line input
 fn input(prompt: &str) -> String {
     print!("{}", prompt);
     io::stdout().flush().unwrap();
@@ -464,6 +465,7 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
+/// Search vector for function pattern match
 fn search_vec(
     vec: Vec<(Vec<Type>, (String, HashMap<String, Type>))>,
     target: Vec<Type>,
@@ -488,9 +490,10 @@ fn search_vec(
     temp
 }
 
+/// dynamic data type
 #[derive(Clone, Debug)]
 enum Type {
-    Code(String),
+    Expr(String),
     Block(String),
     Symbol(String),
     Function(Function),
@@ -502,26 +505,32 @@ enum Type {
 }
 
 impl Type {
+    /// Parse from string
     fn parse(source: String) -> Type {
         let mut source = source.trim().to_string();
         if let Ok(value) = source.parse::<f64>() {
+            // Number value
             Type::Number(value)
         } else if let Ok(value) = source.parse::<bool>() {
+            // Bool value
             Type::Bool(value)
         } else if source == "null" {
+            // Null value
             Type::Null
         } else if source.starts_with('"') && source.starts_with('"') {
+            // String object
             Type::String({
                 source.remove(source.find('"').unwrap_or_default());
                 source.remove(source.rfind('"').unwrap_or_default());
                 source.to_string()
             })
         } else if source.starts_with("lambda(") && source.ends_with(")") && source.contains("->") {
+            // Lambda expression
             source = source.replacen("lambda(", "", 1);
             source.remove(source.rfind(")").unwrap_or_default());
             let define: Vec<&str> = source.split("->").collect();
             Type::Function(Function::UserDefined(vec![(
-                tokenize(define[0].to_string())
+                tokenize_expr(define[0].to_string())
                     .iter()
                     .map(|i| Type::parse(i.to_string()))
                     .collect(),
@@ -531,27 +540,31 @@ impl Type {
                 ),
             )]))
         } else if source.starts_with("(") && source.ends_with(")") {
-            Type::Code({
+            // inner expression
+            Type::Expr({
                 source.remove(source.find("(").unwrap_or_default());
                 source.remove(source.rfind(")").unwrap_or_default());
                 source
             })
         } else if source.starts_with("{") && source.ends_with("}") {
+            // Code block
             Type::Block({
                 source.remove(source.find("{").unwrap_or_default());
                 source.remove(source.rfind("}").unwrap_or_default());
                 source
             })
         } else if source.starts_with("[") && source.ends_with("]") {
+            // List object
             Type::List({
                 source.remove(source.find("[").unwrap_or_default());
                 source.remove(source.rfind("]").unwrap_or_default());
-                tokenize(source)
+                tokenize_expr(source)
                     .into_iter()
                     .map(|item| Type::parse(item.to_string()))
                     .collect()
             })
         } else {
+            // Other value will be symbol
             Type::Symbol(source.to_string())
         }
     }
@@ -571,7 +584,7 @@ impl Type {
             Type::Null => 0.0,
             Type::Function(Function::UserDefined(value)) => value.len() as f64,
             Type::Function(Function::BuiltIn(_)) => 0.0,
-            Type::Code(value) | Type::Block(value) => value.len() as f64,
+            Type::Expr(value) | Type::Block(value) => value.len() as f64,
         }
     }
 
@@ -580,7 +593,7 @@ impl Type {
             Type::Number(value) => value.to_string(),
             Type::String(value) | Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => value.to_string(),
-            Type::Code(value) => format!("({})", value),
+            Type::Expr(value) => format!("({})", value),
             Type::List(value) => format!(
                 "[{}]",
                 value
@@ -604,7 +617,7 @@ impl Type {
             Type::String(value) => format!("\"{}\"", value),
             Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => value.to_string(),
-            Type::Code(value) => format!("({})", value),
+            Type::Expr(value) => format!("({})", value),
             Type::List(value) => format!(
                 "[{}]",
                 value
@@ -630,7 +643,7 @@ impl Type {
             Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
             Type::Null => false,
             Type::Function(_) => true,
-            Type::Code(value) | Type::Block(value) => !value.is_empty(),
+            Type::Expr(value) | Type::Block(value) => !value.is_empty(),
         }
     }
 
@@ -647,27 +660,35 @@ impl Type {
     }
 }
 
+/// Function object
 #[derive(Clone, Debug)]
 enum Function {
+    /// Build-in function written in Rust code
     BuiltIn(fn(Vec<Type>, HashMap<String, Type>) -> Type),
+    /// User-defined function written in Pravda code
     UserDefined(Vec<(Vec<Type>, (String, HashMap<String, Type>))>),
 }
 
+/// Run program
 fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let source = tokenize_program(source);
     let mut result = Type::Null;
+
+    // Execute each line
     for lines in source {
         if lines.len() == 2 {
-            let define = tokenize(lines[0].to_string());
+            let define = tokenize_expr(lines[0].to_string());
             if define.len() > 1 {
                 if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(&define[0]) {
                     let mut exist = exist.clone();
+                    // Prepare argument
                     let args: Vec<Type> = define[1..define.len()]
                         .to_vec()
                         .iter()
                         .map(|i| Type::parse(i.to_string()))
                         .collect();
                     if exist[0].0.len() == args.len() {
+                        // Add pattern match of the function
                         exist.push((args, (lines[1].clone(), memory.to_owned())));
                         let object = Type::Function(Function::UserDefined(exist));
                         result = object.clone();
@@ -676,6 +697,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         eprintln!("Error! the function arguments length should be immutable");
                     }
                 } else {
+                    // Define new function
                     let object = Type::Function(Function::UserDefined(vec![(
                         define[1..define.len()]
                             .to_vec()
@@ -691,10 +713,12 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                     memory.insert(define[0].to_string(), object);
                 }
             } else {
+                // Define variable
                 result = eval(lines[1..lines.len()].to_vec().join(" = "), memory);
                 memory.insert(define[0].to_string(), result.clone());
             }
         } else {
+            // Evaluate the expression
             result = eval(lines[0].to_string(), memory);
         }
     }
@@ -780,62 +804,55 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
     tokens
 }
 
-fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
-    let programs: Vec<Type> = tokenize(programs)
+/// Evaluate expression
+fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
+    // Parse expression
+    let expr: Vec<Type> = tokenize_expr(expr)
         .iter()
         .map(|i| Type::parse(i.to_owned()))
         .collect();
-    if programs.is_empty() {
+
+    if expr.is_empty() {
         return Type::Null;
     }
 
-    if let Type::Symbol(identify) = programs[0].clone() {
+    if let Type::Symbol(identify) = expr[0].clone() {
         if let Some(value) = memory.get(&identify) {
+            // Read memory value
             if let Type::Function(name) = value {
-                call_function(
-                    name.to_owned(),
-                    programs[1..programs.len()].to_vec(),
-                    memory,
-                )
+                call_function(name.to_owned(), expr[1..expr.len()].to_vec(), memory)
             } else {
                 value.to_owned()
             }
         } else {
-            programs[0].clone()
+            expr[0].clone()
         }
-    } else if let Type::Function(liberal) = &programs[0] {
-        call_function(
-            liberal.clone(),
-            programs[1..programs.len()].to_vec(),
-            memory,
-        )
-    } else if let Type::Block(block) = &programs[0] {
+    } else if let Type::Function(liberal) = &expr[0] {
+        call_function(liberal.clone(), expr[1..expr.len()].to_vec(), memory)
+    } else if let Type::Block(block) = &expr[0] {
+        // Evaluate the code block
         let result = run(block.to_owned(), &mut memory.clone());
         if let Type::Function(func) = result {
-            call_function(
-                func,
-                programs[1..programs.len()].to_vec(),
-                &mut memory.clone(),
-            )
+            // If it's function, call it
+            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
         } else {
             result
         }
-    } else if let Type::Code(code) = &programs[0] {
+    } else if let Type::Expr(code) = &expr[0] {
+        // Evaluate the expression
         let result = eval(code.to_owned(), &mut memory.clone());
         if let Type::Function(func) = result {
-            call_function(
-                func,
-                programs[1..programs.len()].to_vec(),
-                &mut memory.clone(),
-            )
+            // If it's function, call it
+            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
         } else {
             result
         }
     } else {
-        if programs.len() == 1 {
-            programs[0].to_owned()
+        if expr.len() == 1 {
+            expr[0].to_owned()
         } else {
-            Type::List(programs)
+            // If there's multiple value, return it as a list
+            Type::List(expr)
         }
     }
 }
@@ -843,40 +860,49 @@ fn eval(programs: String, memory: &mut HashMap<String, Type>) -> Type {
 fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
     let mut params: Vec<Type> = vec![];
     for i in args {
-        if let Type::Code(code) = i.clone() {
+        // Prepare arguments
+        if let Type::Expr(code) = i.clone() {
             params.push(eval(code, &mut memory.clone()))
         } else if let Type::Block(block) = i.clone() {
             params.push(run(block, &mut memory.clone()))
         } else if let Type::Symbol(name) = i.clone() {
             if name.starts_with("~") {
+                // Processing of mutable length argument
                 let name = name[1..name.len()].to_string();
                 let value = Type::parse(name.clone());
                 if let Some(value) = memory.get(&name) {
                     for j in value.get_list() {
+                        // Expand　the list as argument
                         params.push(j.to_owned())
                     }
                 } else if let Type::List(list) = value {
                     for j in list {
+                        // Expand　the list as argument
                         params.push(j.to_owned())
                     }
-                } else if let Type::Code(code) = value {
+                } else if let Type::Expr(code) = value {
                     let result = eval(code, memory);
                     for j in result.get_list() {
+                        // Expand　the list as argument
                         params.push(j.to_owned())
                     }
                 } else if let Type::Block(code) = value {
+                    // Run the code
                     let result = run(code, memory);
                     for j in result.get_list() {
+                        // Expand　the list as argument
                         params.push(j.to_owned())
                     }
                 } else {
                     params.push(value)
                 }
             } else if name.starts_with("@") {
+                // Processing of lazy evaluate expression
                 params.push(Type::parse(name[1..name.len()].to_string()))
             } else {
                 if let Some(value) = memory.get(&name) {
                     if value.get_symbol().starts_with("@") {
+                        // Processing of lazy evaluate variable
                         let value = Type::parse(
                             value.get_symbol()[1..value.get_symbol().len()].to_string(),
                         );
@@ -897,10 +923,12 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
         function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
         if let Some((program, scope)) = search_vec(object.clone(), params.clone()) {
+            // Matched pattern
             let mut scope = scope.clone();
             eval(program.to_string(), &mut scope)
         } else {
             if let Some((args, (program, scope))) = {
+                // Normal argument, not pattern
                 let mut flag = None;
                 for item in {
                     let mut object = object.clone();
@@ -919,9 +947,10 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                 flag
             } {
                 let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-                scope.extend(memory.to_owned());
+                scope.extend(memory.to_owned()); // Update memory
                 if args[args.len() - 1].get_symbol().starts_with("~") {
                     for (arg, value) in args.iter().zip(params.to_vec()) {
+                        // Processing of mutable length argument
                         if arg.get_symbol().starts_with("~") {
                             scope.insert(
                                 arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
@@ -935,22 +964,26 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                                 ),
                             );
                         } else {
+                            // Set argument value as variable
                             scope.insert(arg.get_symbol(), value);
                         }
                     }
                 } else {
                     for (arg, value) in args.iter().zip(params.to_vec()) {
+                        // Set argument value as variable
                         scope.insert(arg.get_symbol(), value);
                     }
                 }
 
                 if args.len() <= params.len() {
+                    // Execute function code
                     if let Type::Block(block) = Type::parse(program.clone()) {
                         run(block, &mut scope)
                     } else {
                         eval(program.to_string(), &mut scope)
                     }
                 } else {
+                    // Partial application of the function
                     let mut object = object.clone();
                     object.push((
                         args[params.len()..args.len()].to_vec(),
@@ -967,7 +1000,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     }
 }
 
-fn tokenize(input: String) -> Vec<String> {
+fn tokenize_expr(input: String) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
     let mut in_parentheses: usize = 0;
