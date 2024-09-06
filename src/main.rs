@@ -414,7 +414,7 @@ fn main() {
             })),
         ),
         (
-            "import".to_string(),
+            "load".to_string(),
             Type::Function(Function::BuiltIn(|params, memory| {
                 let mut memory = memory.clone();
                 if params.len() >= 1 {
