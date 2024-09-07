@@ -412,6 +412,25 @@ fn main() {
             })),
         ),
         (
+            "loop".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() >= 2 {
+                    let count = params[0].get_number() as usize;
+                    let block = if let Type::Block(block) = params[1].clone() {
+                        block
+                    } else {
+                        return Type::Null;
+                    };
+
+                    let mut memory = memory.clone();
+                    for _ in 0..count {
+                        run(block.clone(), &mut memory);
+                    }
+                }
+                Type::Null
+            })),
+        ),
+        (
             "if".to_string(),
             Type::Function(Function::BuiltIn(|params, memory| {
                 let mut memory = memory.clone();
