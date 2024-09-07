@@ -114,7 +114,7 @@ fn main() {
             "less-than".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
-                    let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
+                    let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                     params.windows(2).all(|window| window[0] < window[1])
                 })
             })),
@@ -123,7 +123,7 @@ fn main() {
             "greater-than".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::Bool({
-                    let params: Vec<String> = params.iter().map(|i| i.get_symbol()).collect();
+                    let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
                     params.windows(2).all(|window| window[0] > window[1])
                 })
             })),
@@ -383,6 +383,29 @@ fn main() {
 
                     for item in params[0].get_list() {
                         call_function(func.clone(), vec![item.clone()], &mut memory);
+                    }
+                }
+                Type::Null
+            })),
+        ),
+        (
+            "while".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() >= 2 {
+                    let cond = if let Type::Expr(expr) = params[0].clone() {
+                        expr
+                    } else {
+                        return Type::Null;
+                    };
+                    let block = if let Type::Block(block) = params[1].clone() {
+                        block
+                    } else {
+                        return Type::Null;
+                    };
+
+                    let mut memory = memory.clone();
+                    while eval(cond.clone(), &mut memory).get_bool() {
+                        run(block.clone(), &mut memory);
                     }
                 }
                 Type::Null
