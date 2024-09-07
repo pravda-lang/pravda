@@ -1,3 +1,4 @@
+//! This is interpreter of Pravda programming language
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::read_to_string;
@@ -8,7 +9,10 @@ fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         ("char.new-line".to_string(), Type::String("\n".to_string())),
         ("char.tab".to_string(), Type::String("\t".to_string())),
-        ("char.double-quote".to_string(), Type::String("\"".to_string())),
+        (
+            "char.double-quote".to_string(),
+            Type::String("\"".to_string()),
+        ),
         ("char.semicolon".to_string(), Type::String(";".to_string())),
         ("char.equal".to_string(), Type::String("=".to_string())),
         (
@@ -578,17 +582,77 @@ fn search_vec(
     temp
 }
 
-/// dynamic data type
+/// Dynamic data type used in Pravda
 #[derive(Clone, Debug)]
 enum Type {
+    /// Expression
+    ///
+    /// Example:
+    /// ```
+    /// (+ 1 2 (* 3 4))
+    /// ```
     Expr(String),
+    /// Code block
+    ///
+    /// Example:
+    /// ```
+    /// {
+    ///     x = 5;
+    ///     + x 1
+    /// }
+    /// ```
     Block(String),
+    /// Symbol
+    /// Used in such a variable, lazy evaluting, etc
+    ///
+    /// Example:
+    /// ```
+    /// lazy(+ 1 2)
+    /// ```
     Symbol(String),
+    /// Function object
+    ///
+    /// Example:
+    /// ```
+    /// lambda(n -> * n 2)
+    /// ```
     Function(Function),
+    /// Number that's 64bit float
+    ///
+    /// Example:
+    /// ```
+    /// 3.14
+    /// ```
     Number(f64),
+    /// Number that's 64bit float
+    ///
+    /// Example:
+    /// ```
+    /// "hello"
+    /// ```
     String(String),
+    /// Bool value
+    /// Used in logical operating
+    ///
+    /// Example:
+    /// ```
+    /// true
+    /// ```
     Bool(bool),
+    /// List includes several values
+    ///
+    /// Example:
+    /// ```
+    /// [1 2 "abc"]
+    /// ```
     List(Vec<Type>),
+    /// Null
+    /// Shows there's nothing
+    ///
+    /// Example:
+    /// ```
+    /// null
+    /// ```
     Null,
 }
 
@@ -606,7 +670,7 @@ impl Type {
             // Null value
             Type::Null
         } else if source.starts_with('"') && source.starts_with('"') {
-            // String object
+            // String object is surrounded by double quote
             Type::String({
                 source.remove(source.find('"').unwrap_or_default());
                 source.remove(source.rfind('"').unwrap_or_default());
@@ -632,21 +696,21 @@ impl Type {
                 ),
             )]))
         } else if source.starts_with("(") && source.ends_with(")") {
-            // inner expression
+            // Inner expression is surrounded by parentheses
             Type::Expr({
                 source.remove(source.find("(").unwrap_or_default());
                 source.remove(source.rfind(")").unwrap_or_default());
                 source
             })
         } else if source.starts_with("{") && source.ends_with("}") {
-            // Code block
+            // Code block is surrounded by brace
             Type::Block({
                 source.remove(source.find("{").unwrap_or_default());
                 source.remove(source.rfind("}").unwrap_or_default());
                 source
             })
         } else if source.starts_with("[") && source.ends_with("]") {
-            // List object
+            // List object is surrounded by bracket
             Type::List({
                 source.remove(source.find("[").unwrap_or_default());
                 source.remove(source.rfind("]").unwrap_or_default());
@@ -748,16 +812,34 @@ impl Type {
     }
 }
 
-/// Function object
+/// Function object used in the Pravda
 #[derive(Clone, Debug)]
 enum Function {
     /// Build-in function written in Rust code
-    BuiltIn(fn(Vec<Type>, HashMap<String, Type>) -> Type),
+    BuiltIn(
+        fn(
+            Vec<Type>,             // Passed arguments when it is calling
+            HashMap<String, Type>, // Memory of variables and functions to access in the calling
+        ) -> Type,
+    ),
     /// User-defined function written in Pravda code
-    UserDefined(Vec<(Vec<Type>, (String, HashMap<String, Type>))>),
+    UserDefined(
+        Vec<(
+            Vec<Type>, // The argument pattern and become the key
+            (
+                String,                // A program code of the function
+                HashMap<String, Type>, // Memory of variables and functions to access in the calling
+            ),
+        )>,
+    ),
 }
 
-/// Run program
+/// Run the program and return result value
+/// # Arguments
+/// * `source` - The source code string to run as program
+/// * `memory` - Has functions and variables to access in the program
+/// # Return values
+/// This functions returns value that's result of running
 fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     let source = tokenize_program(source);
     let mut result = Type::Null;
@@ -766,6 +848,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     for lines in source {
         if lines.len() == 2 {
             let define = tokenize_expr(lines[0].to_string());
+            // Is the line includes `=` ?
             if define.len() > 1 {
                 if let Some(Type::Function(Function::UserDefined(exist))) = memory.get(&define[0]) {
                     let mut exist = exist.clone();
@@ -813,6 +896,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
     result
 }
 
+/// return 2 length vector splited by it if the line has `=` else just the line in the top vector
 fn tokenize_program(input: String) -> Vec<Vec<String>> {
     let mut tokens: Vec<Vec<String>> = Vec::new();
     let mut current_token = String::new();
@@ -892,7 +976,12 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
     tokens
 }
 
-/// Evaluate expression
+/// Evaluate the expression and return result value
+/// # Arguments
+/// * `expr` - The expression string to evaluate
+/// * `memory` - Has functions and variables to access in the expression
+/// # Return values
+/// This functions returns value that's result of evaluating
 fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
     // Parse expression
     let expr: Vec<Type> = tokenize_expr(expr)
@@ -945,6 +1034,13 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
     }
 }
 
+/// Call ordered function and return result value
+/// # Arguments
+/// * `function` - The function object to call
+/// * `args` - Several arguments that will be passed to function
+/// * `memory` - Has functions and variables to access in the calling
+/// # Return values
+/// This functions returns value that's result of calling
 fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
     let mut params: Vec<Type> = vec![];
     for i in args {
@@ -1097,6 +1193,11 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     }
 }
 
+/// Tokenize for the expression
+/// ```
+/// let result = tokenize_expr("+ 1 2 (* 3 4)")
+/// assert_eq!(result, vec!["+", "1", "2", "(* 3 4)"]);
+/// ```
 fn tokenize_expr(input: String) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current_token = String::new();
