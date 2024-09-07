@@ -7,6 +7,7 @@ use std::path::Path;
 fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         ("new-line".to_string(), Type::String("\n".to_string())),
+        ("double-quote".to_string(), Type::String("\"".to_string())),
         (
             "+".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
@@ -225,11 +226,11 @@ fn main() {
             Type::Function(Function::BuiltIn(|params, _| {
                 println!(
                     "{}",
-                    if let Some(count) = params.get(0) {
-                        count.get_string()
-                    } else {
-                        "".to_string()
-                    }
+                    params
+                        .iter()
+                        .map(|i| i.get_string())
+                        .collect::<Vec<String>>()
+                        .join("")
                 );
                 Type::Null
             })),
@@ -608,7 +609,10 @@ impl Type {
                 source.remove(source.rfind('"').unwrap_or_default());
                 source.to_string()
             })
-        } else if (source.starts_with("lambda(") || source.starts_with(r"\(")) && source.ends_with(")") && source.contains("->") {
+        } else if (source.starts_with("lambda(") || source.starts_with(r"\("))
+            && source.ends_with(")")
+            && source.contains("->")
+        {
             // Lambda expression
             source = source.replacen("lambda(", "", 1);
             source = source.replacen(r"\(", "", 1);
