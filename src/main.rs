@@ -608,9 +608,10 @@ impl Type {
                 source.remove(source.rfind('"').unwrap_or_default());
                 source.to_string()
             })
-        } else if source.starts_with("lambda(") && source.ends_with(")") && source.contains("->") {
+        } else if (source.starts_with("lambda(") || source.starts_with(r"\(")) && source.ends_with(")") && source.contains("->") {
             // Lambda expression
             source = source.replacen("lambda(", "", 1);
+            source = source.replacen(r"\(", "", 1);
             source.remove(source.rfind(")").unwrap_or_default());
             let define: Vec<&str> = source.split("->").collect();
             Type::Function(Function::UserDefined(vec![(
@@ -979,12 +980,21 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
             } else if name.starts_with("@") {
                 // Processing of lazy evaluate expression
                 params.push(Type::parse(name[1..name.len()].to_string()))
+            } else if name.starts_with("lazy") {
+                // Processing of lazy evaluate expression
+                params.push(Type::parse(name["lazy".len()..name.len()].to_string()))
             } else {
                 if let Some(value) = memory.get(&name) {
                     if value.get_symbol().starts_with("@") {
                         // Processing of lazy evaluate variable
                         let value = Type::parse(
                             value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                        );
+                        params.push(value)
+                    } else if value.get_symbol().starts_with("lazy") {
+                        // Processing of lazy evaluate variable
+                        let value = Type::parse(
+                            value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
                         );
                         params.push(value)
                     } else {
