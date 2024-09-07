@@ -6,8 +6,11 @@ use std::path::Path;
 
 fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
-        ("new-line".to_string(), Type::String("\n".to_string())),
-        ("double-quote".to_string(), Type::String("\"".to_string())),
+        ("char.new-line".to_string(), Type::String("\n".to_string())),
+        ("char.tab".to_string(), Type::String("\t".to_string())),
+        ("char.double-quote".to_string(), Type::String("\"".to_string())),
+        ("char.semicolon".to_string(), Type::String(";".to_string())),
+        ("char.equal".to_string(), Type::String("=".to_string())),
         (
             "+".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
