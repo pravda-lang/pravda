@@ -5,6 +5,7 @@ use std::fs::read_to_string;
 use std::io::{self, Write};
 use std::path::Path;
 
+/// The entry point
 fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
         ("char.new-line".to_string(), Type::String("\n".to_string())),
