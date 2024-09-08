@@ -531,7 +531,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.6.2");
+        println!("Pravda 0.7.0");
 
         // REPL
         loop {
