@@ -1,6 +1,6 @@
 //! This is interpreter of Pravda programming language
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyAny};
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::read_to_string;
@@ -734,6 +734,20 @@ impl Type {
         }
     }
 
+    fn from_python(result: &PyAny) -> Type {
+        if let Ok(value) = result.extract::<f64>() {
+            Type::Number(value)
+        } else if let Ok(value) = result.extract::<String>() {
+            Type::String(value)
+        } else if let Ok(value) = result.extract::<bool>() {
+            Type::Bool(value)
+        } else if let Ok(value) = result.extract::<Vec<&PyAny>>() {
+            Type::List(value.iter().map(|i|Type::from_python(i)).collect())
+        } else {
+            Type::Null
+        }
+    }
+
     fn get_number(&self) -> f64 {
         match self {
             Type::Number(value) => *value,
@@ -1291,15 +1305,7 @@ result = main({})
             return None;
         };
         let result = context.get_item("result").unwrap();
-        Some(if let Ok(value) = result.extract::<f64>() {
-            Type::Number(value)
-        } else if let Ok(value) = result.extract::<String>() {
-            Type::String(value)
-        } else if let Ok(value) = result.extract::<bool>() {
-            Type::Bool(value)
-        } else {
-            Type::Null
-        })
+        Some(Type::from_python(result))
     })
 }
 
