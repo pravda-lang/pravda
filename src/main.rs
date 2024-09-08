@@ -1241,7 +1241,7 @@ result = main({})
                 .collect::<Vec<String>>()
                 .join(", ")
         );
-        let _ = py.run(&code, None, Some(context));
+        py.run(&code, None, Some(context)).unwrap();
         let result = if let Some(value) = context.get_item("result") {
             value
         } else {
