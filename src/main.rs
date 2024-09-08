@@ -520,6 +520,12 @@ fn main() {
                 }
             })),
         ),
+        (
+            "exit".to_string(),
+            Type::Function(Function::BuiltIn(|_, _| {
+                std::process::exit(0);
+            })),
+        ),
     ]);
 
     let args: Vec<String> = args().collect();
@@ -531,7 +537,7 @@ fn main() {
             eprintln!("Error! it fault to open the script file")
         }
     } else {
-        println!("Pravda 0.7.0");
+        println!("Pravda 0.7.1");
 
         // REPL
         loop {
@@ -1281,14 +1287,10 @@ result = main({})
             };
         }
 
-        let Ok(_) = py.run(&code, Some(context), Some(context)) else {
+        if let Err(_) = py.run(&code, Some(context), Some(context)) {
             return None;
         };
-        let result = if let Some(value) = context.get_item("result") {
-            value
-        } else {
-            return None;
-        };
+        let result = context.get_item("result").unwrap();
         Some(if let Ok(value) = result.extract::<f64>() {
             Type::Number(value)
         } else if let Ok(value) = result.extract::<String>() {
