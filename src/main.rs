@@ -1032,7 +1032,9 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
             }
         } else {
             if let Ok(code) = read_to_string(identify) {
-                call_python(code, expr[1..expr.len()].to_vec()).unwrap_or(Type::Null)
+                let code: Vec<&str> = code.split("\n").collect();
+                let (depent, code): (Vec<String>, String) = (code[0].to_string().split_whitespace().map(|i|i.to_string()).collect(), code[1..code.len()].iter().map(|i|i.to_string()).collect::<Vec<String>>().join("\n"));
+                call_python(code, expr[1..expr.len()].to_vec(), depent).unwrap_or(Type::Null)
             } else {
                 expr[0].clone()
             }
@@ -1226,7 +1228,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     }
 }
 
-fn call_python(code: String, args: Vec<Type>) -> Option<Type> {
+fn call_python(code: String, args: Vec<Type>, depent: Vec<String>) -> Option<Type> {
     pyo3::prepare_freethreaded_python();
     Python::with_gil(|py| {
         let context = PyDict::new(py);
@@ -1241,7 +1243,13 @@ result = main({})
                 .collect::<Vec<String>>()
                 .join(", ")
         );
-        py.run(&code, None, Some(context)).unwrap();
+        
+        for lib in depent {
+            let module = py.import(lib.as_str()).unwrap();   
+            context.set_item(lib, module).unwrap(); 
+        }
+
+        py.run(&code, Some(context), Some(context)).unwrap();
         let result = if let Some(value) = context.get_item("result") {
             value
         } else {
