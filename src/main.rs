@@ -1,6 +1,6 @@
 //! This is interpreter of Pravda programming language
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyAny};
+use pyo3::types::{PyAny, PyDict};
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::read_to_string;
@@ -742,7 +742,7 @@ impl Type {
         } else if let Ok(value) = result.extract::<bool>() {
             Type::Bool(value)
         } else if let Ok(value) = result.extract::<Vec<&PyAny>>() {
-            Type::List(value.iter().map(|i|Type::from_python(i)).collect())
+            Type::List(value.iter().map(|i| Type::from_python(i)).collect())
         } else {
             Type::Null
         }
