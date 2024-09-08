@@ -1105,9 +1105,10 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
                     let code: Vec<&str> = code.split("\n").collect();
                     let (depent, code): (Vec<String>, String) = (
                         code[0]
+                            .replace("import", "")
                             .to_string()
                             .split_whitespace()
-                            .map(|i| i.to_string())
+                            .map(|i| i.trim().to_string())
                             .collect(),
                         code[1..code.len()]
                             .iter()
