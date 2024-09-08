@@ -1100,21 +1100,32 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
                 value.to_owned()
             }
         } else {
-            if let Ok(code) = read_to_string(identify) {
-                let code: Vec<&str> = code.split("\n").collect();
-                let (depent, code): (Vec<String>, String) = (
-                    code[0]
-                        .to_string()
-                        .split_whitespace()
-                        .map(|i| i.to_string())
-                        .collect(),
-                    code[1..code.len()]
-                        .iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n"),
-                );
-                call_python(code, expr[1..expr.len()].to_vec(), depent).unwrap_or(Type::Null)
+            if let Ok(code) = read_to_string(identify.clone()) {
+                if identify.ends_with(".py") {
+                    let code: Vec<&str> = code.split("\n").collect();
+                    let (depent, code): (Vec<String>, String) = (
+                        code[0]
+                            .to_string()
+                            .split_whitespace()
+                            .map(|i| i.to_string())
+                            .collect(),
+                        code[1..code.len()]
+                            .iter()
+                            .map(|i| i.to_string())
+                            .collect::<Vec<String>>()
+                            .join("\n"),
+                    );
+                    call_python(code, expr[1..expr.len()].to_vec(), depent).unwrap_or(Type::Null)
+                } else if identify.ends_with(".pvd") {
+                    let result = run(code, &mut memory.clone());
+                    if let Type::Function(func) = result {
+                        call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+                    } else {
+                        result
+                    }
+                } else {
+                    Type::Null
+                }
             } else {
                 expr[0].clone()
             }
@@ -1156,7 +1167,11 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
 /// * `memory` - Has functions and variables to access in the calling
 /// # Return values
 /// This functions returns value that's result of calling
-fn call_function(function: Function, params: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
+fn call_function(
+    function: Function,
+    params: Vec<Type>,
+    memory: &mut HashMap<String, Type>,
+) -> Type {
     if let Function::BuiltIn(function) = function {
         function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
