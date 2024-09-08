@@ -397,8 +397,9 @@ fn main() {
                         temp = call_function(func.clone(), vec![item.clone()], &mut memory);
                     }
                     temp
-                }else{
-                Type::Null}
+                } else {
+                    Type::Null
+                }
             })),
         ),
         (
@@ -417,13 +418,14 @@ fn main() {
                     };
 
                     let mut memory = memory.clone();
-                     let mut temp = Type::Null;
+                    let mut temp = Type::Null;
                     while eval(cond.clone(), &mut memory).get_bool() {
                         temp = run(block.clone(), &mut memory);
                     }
                     temp
+                } else {
+                    Type::Null
                 }
-                Type::Null
             })),
         ),
         (
