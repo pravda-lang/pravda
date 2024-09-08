@@ -1107,7 +1107,7 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         code[0]
                             .replace("import", "")
                             .to_string()
-                            .split_whitespace()
+                            .split(",")
                             .map(|i| i.trim().to_string())
                             .collect(),
                         code[1..code.len()]
