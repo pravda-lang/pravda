@@ -1007,16 +1007,85 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
 
 /// Evaluate the expression and return result value
 /// # Arguments
-/// * `expr` - The expression string to evaluate
+/// * `source` - The source code string to evaluate as expression
 /// * `memory` - Has functions and variables to access in the expression
 /// # Return values
 /// This functions returns value that's result of evaluating
-fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
+fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
     // Parse expression
-    let expr: Vec<Type> = tokenize_expr(expr)
+    let mut expr: Vec<Type> = vec![];
+    for i in tokenize_expr(source)
         .iter()
         .map(|i| Type::parse(i.to_owned()))
-        .collect();
+        .collect::<Vec<Type>>()
+    {
+        // Prepare arguments
+        if let Type::Expr(code) = i.clone() {
+            expr.push(eval(code, &mut memory.clone()))
+        } else if let Type::Block(block) = i.clone() {
+            expr.push(run(block, &mut memory.clone()))
+        } else if let Type::Symbol(name) = i.clone() {
+            if name.starts_with("~") {
+                // Processing of mutable length argument
+                let name = name[1..name.len()].to_string();
+                let value = Type::parse(name.clone());
+                if let Some(value) = memory.get(&name) {
+                    for j in value.get_list() {
+                        // Expand　the list as argument
+                        expr.push(j.to_owned())
+                    }
+                } else if let Type::List(list) = value {
+                    for j in list {
+                        // Expand　the list as argument
+                        expr.push(j.to_owned())
+                    }
+                } else if let Type::Expr(code) = value {
+                    let result = eval(code, memory);
+                    for j in result.get_list() {
+                        // Expand　the list as argument
+                        expr.push(j.to_owned())
+                    }
+                } else if let Type::Block(code) = value {
+                    // Run the code
+                    let result = run(code, memory);
+                    for j in result.get_list() {
+                        // Expand　the list as argument
+                        expr.push(j.to_owned())
+                    }
+                } else {
+                    expr.push(value)
+                }
+            } else if name.starts_with("@") {
+                // Processing of lazy evaluate expression
+                expr.push(Type::parse(name[1..name.len()].to_string()))
+            } else if name.starts_with("lazy") {
+                // Processing of lazy evaluate expression
+                expr.push(Type::parse(name["lazy".len()..name.len()].to_string()))
+            } else {
+                if let Some(value) = memory.get(&name) {
+                    if value.get_symbol().starts_with("@") {
+                        // Processing of lazy evaluate variable
+                        let value = Type::parse(
+                            value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                        );
+                        expr.push(value)
+                    } else if value.get_symbol().starts_with("lazy") {
+                        // Processing of lazy evaluate variable
+                        let value = Type::parse(
+                            value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                        );
+                        expr.push(value)
+                    } else {
+                        expr.push(value.to_owned())
+                    }
+                } else {
+                    expr.push(i.to_owned())
+                }
+            }
+        } else {
+            expr.push(i.to_owned());
+        }
+    }
 
     if expr.is_empty() {
         return Type::Null;
@@ -1083,81 +1152,11 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
 /// Call ordered function and return result value
 /// # Arguments
 /// * `function` - The function object to call
-/// * `args` - Several arguments that will be passed to function
+/// * `params` - Several paramaters that will be passed to function
 /// * `memory` - Has functions and variables to access in the calling
 /// # Return values
 /// This functions returns value that's result of calling
-fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
-    let mut params: Vec<Type> = vec![];
-    for i in args {
-        // Prepare arguments
-        if let Type::Expr(code) = i.clone() {
-            params.push(eval(code, &mut memory.clone()))
-        } else if let Type::Block(block) = i.clone() {
-            params.push(run(block, &mut memory.clone()))
-        } else if let Type::Symbol(name) = i.clone() {
-            if name.starts_with("~") {
-                // Processing of mutable length argument
-                let name = name[1..name.len()].to_string();
-                let value = Type::parse(name.clone());
-                if let Some(value) = memory.get(&name) {
-                    for j in value.get_list() {
-                        // Expand　the list as argument
-                        params.push(j.to_owned())
-                    }
-                } else if let Type::List(list) = value {
-                    for j in list {
-                        // Expand　the list as argument
-                        params.push(j.to_owned())
-                    }
-                } else if let Type::Expr(code) = value {
-                    let result = eval(code, memory);
-                    for j in result.get_list() {
-                        // Expand　the list as argument
-                        params.push(j.to_owned())
-                    }
-                } else if let Type::Block(code) = value {
-                    // Run the code
-                    let result = run(code, memory);
-                    for j in result.get_list() {
-                        // Expand　the list as argument
-                        params.push(j.to_owned())
-                    }
-                } else {
-                    params.push(value)
-                }
-            } else if name.starts_with("@") {
-                // Processing of lazy evaluate expression
-                params.push(Type::parse(name[1..name.len()].to_string()))
-            } else if name.starts_with("lazy") {
-                // Processing of lazy evaluate expression
-                params.push(Type::parse(name["lazy".len()..name.len()].to_string()))
-            } else {
-                if let Some(value) = memory.get(&name) {
-                    if value.get_symbol().starts_with("@") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()[1..value.get_symbol().len()].to_string(),
-                        );
-                        params.push(value)
-                    } else if value.get_symbol().starts_with("lazy") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
-                        );
-                        params.push(value)
-                    } else {
-                        params.push(value.to_owned())
-                    }
-                } else {
-                    params.push(i.to_owned())
-                }
-            }
-        } else {
-            params.push(i.to_owned());
-        }
-    }
-
+fn call_function(function: Function, params: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
     if let Function::BuiltIn(function) = function {
         function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
