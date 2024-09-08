@@ -4,3 +4,4 @@ version = "0.6.2"
 edition = "2021"
 
 [dependencies]
+pyo3 = "0.18"

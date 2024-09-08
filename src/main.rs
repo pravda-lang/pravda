@@ -1,4 +1,6 @@
 //! This is interpreter of Pravda programming language
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::read_to_string;
@@ -811,6 +813,32 @@ impl Type {
             other => vec![other.to_owned()],
         }
     }
+
+    fn to_pyobj(&self) -> String {
+        match self {
+            Type::Number(value) => value.to_string(),
+            Type::String(value) => format!("\"{}\"", value),
+            Type::Symbol(value) => value.to_string(),
+            Type::Bool(value) => {
+                let temp = value.to_string().chars().collect::<Vec<char>>();
+                format!(
+                    "{}{}",
+                    temp[0].is_uppercase(),
+                    temp[1..temp.len()].iter().collect::<String>()
+                )
+            }
+            Type::List(value) => format!(
+                "[{}]",
+                value
+                    .iter()
+                    .map(|i| i.to_pyobj())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
+            Type::Null => "None".to_string(),
+            _ => "()".to_string(),
+        }
+    }
 }
 
 /// Function object used in the Pravda
@@ -1003,7 +1031,11 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
                 value.to_owned()
             }
         } else {
-            expr[0].clone()
+            if let Ok(code) = read_to_string(identify) {
+                call_python(code, expr[1..expr.len()].to_vec()).unwrap_or(Type::Null)
+            } else {
+                expr[0].clone()
+            }
         }
     } else if let Type::Function(liberal) = &expr[0] {
         call_function(liberal.clone(), expr[1..expr.len()].to_vec(), memory)
@@ -1192,6 +1224,39 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     } else {
         return Type::Null;
     }
+}
+
+fn call_python(code: String, args: Vec<Type>) -> Option<Type> {
+    pyo3::prepare_freethreaded_python();
+    Python::with_gil(|py| {
+        let context = PyDict::new(py);
+        let code = format!(
+            "
+{}
+result = main({})
+       ",
+            code,
+            args.iter()
+                .map(|i| i.to_pyobj())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
+        let _ = py.run(&code, None, Some(context));
+        let result = if let Some(value) = context.get_item("result") {
+            value
+        } else {
+            return None;
+        };
+        Some(if let Ok(value) = result.extract::<f64>() {
+            Type::Number(value)
+        } else if let Ok(value) = result.extract::<String>() {
+            Type::String(value)
+        } else if let Ok(value) = result.extract::<bool>() {
+            Type::Bool(value)
+        } else {
+            Type::Null
+        })
+    })
 }
 
 /// Tokenize for the expression
