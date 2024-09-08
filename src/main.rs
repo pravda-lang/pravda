@@ -158,6 +158,16 @@ fn main() {
             })),
         ),
         (
+            "not".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                if params.len() >= 1 {
+                    Type::Bool(!params[0].get_bool())
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
             "concat".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<String> = params.iter().map(|i| i.get_string()).collect();
@@ -1194,11 +1204,7 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
 /// * `memory` - Has functions and variables to access in the calling
 /// # Return values
 /// This functions returns value that's result of calling
-fn call_function(
-    function: Function,
-    params: Vec<Type>,
-    memory: &mut HashMap<String, Type>,
-) -> Type {
+fn call_function(function: Function, params: Vec<Type>, memory: &HashMap<String, Type>) -> Type {
     if let Function::BuiltIn(function) = function {
         function(params, memory.to_owned())
     } else if let Function::UserDefined(object) = function {
