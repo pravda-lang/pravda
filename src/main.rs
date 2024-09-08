@@ -1033,7 +1033,18 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
         } else {
             if let Ok(code) = read_to_string(identify) {
                 let code: Vec<&str> = code.split("\n").collect();
-                let (depent, code): (Vec<String>, String) = (code[0].to_string().split_whitespace().map(|i|i.to_string()).collect(), code[1..code.len()].iter().map(|i|i.to_string()).collect::<Vec<String>>().join("\n"));
+                let (depent, code): (Vec<String>, String) = (
+                    code[0]
+                        .to_string()
+                        .split_whitespace()
+                        .map(|i| i.to_string())
+                        .collect(),
+                    code[1..code.len()]
+                        .iter()
+                        .map(|i| i.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                );
                 call_python(code, expr[1..expr.len()].to_vec(), depent).unwrap_or(Type::Null)
             } else {
                 expr[0].clone()
@@ -1243,13 +1254,21 @@ result = main({})
                 .collect::<Vec<String>>()
                 .join(", ")
         );
-        
+
         for lib in depent {
-            let module = py.import(lib.as_str()).unwrap();   
-            context.set_item(lib, module).unwrap(); 
+            let module = if let Ok(module) = py.import(lib.as_str()) {
+                module
+            } else {
+                return None;
+            };
+            let Ok(_) = context.set_item(lib, module) else {
+                return None;
+            };
         }
 
-        py.run(&code, Some(context), Some(context)).unwrap();
+        let Ok(_) = py.run(&code, Some(context), Some(context)) else {
+            return None;
+        };
         let result = if let Some(value) = context.get_item("result") {
             value
         } else {
