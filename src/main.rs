@@ -903,7 +903,9 @@ enum Function {
             ),
         )>,
     ),
+    /// Python library function
     Python(String, Vec<String>),
+    /// Pravda module function
     Module(String),
 }
 
