@@ -1296,7 +1296,12 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
     } else if let Function::Python(code, depent) = function {
         call_python(code, params, depent).unwrap_or(Type::Null)
     } else if let Function::Module(code) = function {
-        run(code, &mut memory.clone())
+        let result = run(code, &mut memory.clone());
+        if let Type::Function(func) = result {
+            call_function(func, params, &mut memory.clone())
+        } else {
+            result.clone()
+        }
     } else {
         return Type::Null;
     }
