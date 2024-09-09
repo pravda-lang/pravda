@@ -1,4 +1,5 @@
 //! This is interpreter of Pravda programming language
+use dirs::home_dir;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
 use std::collections::HashMap;
@@ -1041,7 +1042,10 @@ fn eval(expr: String, memory: &HashMap<String, Type>) -> Type {
                 value.to_owned()
             }
         } else {
-            if let Ok(code) = read_to_string(identify.clone()) {
+            if let (_, Ok(ref code)) | (Ok(ref code), _) = (
+                read_to_string(Path::new(&identify.clone())),
+                read_to_string(home_dir().unwrap().join(Path::new(&identify.clone()))),
+            ) {
                 if identify.ends_with(".py") {
                     let code: Vec<&str> = code.split("\n").collect();
                     let (depent, code): (Vec<String>, String) = (
@@ -1064,7 +1068,7 @@ fn eval(expr: String, memory: &HashMap<String, Type>) -> Type {
                     )
                 } else if identify.ends_with(".pvd") {
                     call_function(
-                        Function::Module(code),
+                        Function::Module(code.to_string()),
                         expr[1..expr.len()].to_vec(),
                         &mut memory.clone(),
                     )
