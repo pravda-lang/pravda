@@ -175,23 +175,6 @@ fn main() {
             })),
         ),
         (
-            "repeat".to_string(),
-            Type::Function(Function::BuiltIn(|params, _| {
-                Type::String(
-                    if let Some(count) = params.get(0) {
-                        count.get_string()
-                    } else {
-                        return Type::Null;
-                    }
-                    .repeat(if let Some(count) = params.get(1) {
-                        count.get_number() as usize
-                    } else {
-                        return Type::Null;
-                    }),
-                )
-            })),
-        ),
-        (
             "split".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::List({
@@ -209,25 +192,6 @@ fn main() {
                     text.split(&key)
                         .map(|i| Type::String(i.to_string()))
                         .collect()
-                })
-            })),
-        ),
-        (
-            "join".to_string(),
-            Type::Function(Function::BuiltIn(|params, _| {
-                Type::String({
-                    let list: Vec<String> = if let Some(count) = params.get(0) {
-                        count.get_list().iter().map(|i| i.get_string()).collect()
-                    } else {
-                        return Type::Null;
-                    };
-                    let key = if let Some(count) = params.get(1) {
-                        count.get_string()
-                    } else {
-                        return Type::Null;
-                    };
-
-                    list.join(&key)
                 })
             })),
         ),
