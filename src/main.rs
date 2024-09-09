@@ -1057,7 +1057,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
 /// * `memory` - Has functions and variables to access in the expression
 /// # Return values
 /// This functions returns value that's result of evaluating
-fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
+fn eval(expr: String, memory: &HashMap<String, Type>) -> Type {
     // Parse expression
     let expr: Vec<Type> = tokenize_expr(expr)
         .iter()
@@ -1148,7 +1148,7 @@ fn eval(expr: String, memory: &mut HashMap<String, Type>) -> Type {
 /// * `memory` - Has functions and variables to access in the calling
 /// # Return values
 /// This functions returns value that's result of calling
-fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<String, Type>) -> Type {
+fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, Type>) -> Type {
     let mut params: Vec<Type> = vec![];
     for i in args {
         // Prepare arguments
@@ -1172,14 +1172,14 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                         params.push(j.to_owned())
                     }
                 } else if let Type::Expr(code) = value {
-                    let result = eval(code, memory);
+                    let result = eval(code, &mut memory.clone());
                     for j in result.get_list() {
                         // Expand　the list as argument
                         params.push(j.to_owned())
                     }
                 } else if let Type::Block(code) = value {
                     // Run the code
-                    let result = run(code, memory);
+                    let result = run(code, &mut memory.clone());
                     for j in result.get_list() {
                         // Expand　the list as argument
                         params.push(j.to_owned())
