@@ -1050,11 +1050,12 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
 fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
     // Parse expression
     let mut expr: Vec<Type> = vec![];
-    for i in tokenize_expr(source)
+    let mut is_lazy = false;
+    let tokens = tokenize_expr(source)
         .iter()
         .map(|i| Type::parse(i.to_owned()))
-        .collect::<Vec<Type>>()
-    {
+        .collect::<Vec<Type>>();
+    for i in &tokens {
         // Prepare arguments
         if let Type::Expr(code) = i.clone() {
             expr.push(eval(code, &mut memory.clone()))
@@ -1091,32 +1092,45 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
                 } else {
                     expr.push(value)
                 }
-            } else if name.starts_with("@") {
+            } else if name.starts_with("@") || name.starts_with("lazy") {
+                is_lazy = true;
                 // Processing of lazy evaluate expression
-                expr.push(Type::parse(name[1..name.len()].to_string()))
-            } else if name.starts_with("lazy") {
-                // Processing of lazy evaluate expression
-                expr.push(Type::parse(name["lazy".len()..name.len()].to_string()))
-            } else {
-                if let Some(value) = memory.get(&name) {
-                    if value.get_symbol().starts_with("@") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()[1..value.get_symbol().len()].to_string(),
-                        );
-                        expr.push(value)
-                    } else if value.get_symbol().starts_with("lazy") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
-                        );
-                        expr.push(value)
+                if tokens.iter().position(|j| j.get_symbol() == i.get_symbol()) != Some(0) {
+                    let truth = &name
+                        [if name.starts_with("@") { "@" } else { "lazy" }.len()..name.len()]
+                        .to_string();
+                    if let Some(_) = memory.get(&name) {
+                        expr.push(Type::Symbol(name))
                     } else {
-                        expr.push(value.to_owned())
+                        expr.push(Type::parse(truth.to_string()))
                     }
                 } else {
-                    expr.push(i.to_owned())
+                    expr.push(i.clone())
                 }
+            } else if let Some(value) = memory.get(&name) {
+                expr.push(
+                    if value.get_symbol().starts_with("@") || value.get_symbol().starts_with("lazy")
+                    {
+                        if tokens.iter().position(|j| j.get_symbol() == i.get_symbol()) != Some(0) {
+                            Type::parse(
+                                value.get_symbol()[if value.get_symbol().starts_with("@") {
+                                    "@"
+                                } else {
+                                    "lazy"
+                                }
+                                .len()
+                                    ..name.len()]
+                                    .to_string(),
+                            )
+                        } else {
+                            value.clone()
+                        }
+                    } else {
+                        value.clone()
+                    },
+                )
+            } else {
+                expr.push(i.to_owned())
             }
         } else {
             expr.push(i.to_owned());
@@ -1170,22 +1184,30 @@ fn eval(source: String, memory: &mut HashMap<String, Type>) -> Type {
     } else if let Type::Function(liberal) = &expr[0] {
         call_function(liberal.clone(), expr[1..expr.len()].to_vec(), memory)
     } else if let Type::Block(block) = &expr[0] {
-        // Evaluate the code block
-        let result = run(block.to_owned(), &mut memory.clone());
-        if let Type::Function(func) = result {
-            // If it's function, call it
-            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+        if !is_lazy {
+            // Evaluate the code block
+            let result = run(block.to_owned(), &mut memory.clone());
+            if let Type::Function(func) = result {
+                // If it's function, call it
+                call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+            } else {
+                result
+            }
         } else {
-            result
+            expr[0].to_owned()
         }
     } else if let Type::Expr(code) = &expr[0] {
-        // Evaluate the expression
-        let result = eval(code.to_owned(), &mut memory.clone());
-        if let Type::Function(func) = result {
-            // If it's function, call it
-            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+        if !is_lazy {
+            // Evaluate the expression
+            let result = eval(code.to_owned(), &mut memory.clone());
+            if let Type::Function(func) = result {
+                // If it's function, call it
+                call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+            } else {
+                result
+            }
         } else {
-            result
+            expr[0].to_owned()
         }
     } else {
         if expr.len() == 1 {
