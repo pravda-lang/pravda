@@ -1232,6 +1232,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &mut HashMap<Strin
                 let mut temp: Option<(Vec<Type>, (String, HashMap<String, Type>))> = None;
                 let mut elder_params = vec![];
                 for i in object.clone() {
+                    elder_params.clear();
                     let mut new_args = vec![];
                     let mut new_params = vec![];
                     for (arg, param) in i.0.clone().iter().zip(params.clone().iter()) {
