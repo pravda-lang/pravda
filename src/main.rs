@@ -896,7 +896,7 @@ fn run(source: String, memory: &mut HashMap<String, Type>) -> Type {
                     let args: Vec<Type> = define[1..define.len()]
                         .to_vec()
                         .iter()
-                        .map(|i| Type::parse(i.to_string()))
+                        .map(|i| eval(i.to_string(), memory))
                         .collect();
                     if exist[0].0.len() == args.len() {
                         // Add pattern match of the function
