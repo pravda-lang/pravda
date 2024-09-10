@@ -1195,90 +1195,72 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             let mut scope = scope.clone();
             eval(program.to_string(), &mut scope)
         } else {
-            let ((args, (program, scope)), params): (
-                (Vec<Type>, (String, HashMap<String, Type>)),
-                Vec<Type>,
-            ) = {
-                let mut temp: Option<(Vec<Type>, (String, HashMap<String, Type>))> = None;
-                let mut elder_params = vec![];
-                for i in object.clone() {
-                    elder_params.clear();
-                    let mut new_args = vec![];
-                    let mut new_params = vec![];
-                    for (arg, param) in i.0.clone().iter().zip(params.clone().iter()) {
-                        if let Type::Symbol(_) = arg.clone() {
-                            elder_params.push(param.clone());
-                        } else {
-                            new_args.push(arg.clone());
-                            new_params.push(param.clone());
-                        };
-                    }
-
-                    if Type::List(new_params).get_symbol()
-                        == Type::List(new_args.clone()).get_symbol()
-                        || new_args.is_empty()
+            if let Some((args, (program, scope))) = {
+                // Normal argument, not pattern
+                let mut flag = None;
+                for item in {
+                    let mut object = object.clone();
+                    object.reverse();
+                    object
+                } {
+                    if item
+                        .0
+                        .iter()
+                        .all(|i| if let Type::Symbol(_) = i { true } else { false })
                     {
-                        temp = Some(i);
+                        flag = Some(item);
+                        break;
                     }
                 }
-
-                if let Some(k) = temp {
-                    (k, elder_params)
+                flag
+            } {
+                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
+                scope.extend(memory.to_owned()); // Update memory
+                if args[args.len() - 1].get_symbol().starts_with("~") {
+                    for (arg, value) in args.iter().zip(params.to_vec()) {
+                        // Processing of mutable length argument
+                        if arg.get_symbol().starts_with("~") {
+                            scope.insert(
+                                arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
+                                Type::List(
+                                    params[params
+                                        .iter()
+                                        .position(|i| i.get_symbol() == value.get_symbol())
+                                        .unwrap()
+                                        ..params.len()]
+                                        .to_vec(),
+                                ),
+                            );
+                        } else {
+                            // Set argument value as variable
+                            scope.insert(arg.get_symbol(), value);
+                        }
+                    }
                 } else {
-                    return Type::Null;
-                }
-            };
-            let mut new_args = vec![];
-            for i in args {
-                if let Type::Symbol(_) = i {
-                    new_args.push(i)
-                }
-            }
-            let args = new_args.clone();
-
-            let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-            scope.extend(memory.to_owned()); // Update memory
-            if args[args.len() - 1].get_symbol().starts_with("~") {
-                for (arg, value) in args.iter().zip(params.to_vec()) {
-                    // Processing of mutable length argument
-                    if arg.get_symbol().starts_with("~") {
-                        scope.insert(
-                            arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
-                            Type::List(
-                                params[params
-                                    .iter()
-                                    .position(|i| i.get_symbol() == value.get_symbol())
-                                    .unwrap()..params.len()]
-                                    .to_vec(),
-                            ),
-                        );
-                    } else {
+                    for (arg, value) in args.iter().zip(params.to_vec()) {
                         // Set argument value as variable
                         scope.insert(arg.get_symbol(), value);
                     }
                 }
-            } else {
-                for (arg, value) in args.iter().zip(params.to_vec()) {
-                    // Set argument value as variable
-                    scope.insert(arg.get_symbol(), value);
-                }
-            }
 
-            if args.len() <= params.len() {
-                // Execute function code
-                if let Type::Block(block) = Type::parse(program.clone()) {
-                    run(block, &mut scope)
+                if args.len() <= params.len() {
+                    // Execute function code
+                    if let Type::Block(block) = Type::parse(program.clone()) {
+                        run(block, &mut scope)
+                    } else {
+                        eval(program.to_string(), &mut scope)
+                    }
                 } else {
-                    eval(program.to_string(), &mut scope)
+                    // Partial application of the function
+                    let mut object = object.clone();
+                    object.push((
+                        args[params.len()..args.len()].to_vec(),
+                        (program.clone(), scope.to_owned()),
+                    ));
+                    Type::Function(Function::UserDefined(object))
                 }
             } else {
-                // Partial application of the function
-                let mut object = object.clone();
-                object.push((
-                    args[params.len()..args.len()].to_vec(),
-                    (program.clone(), scope.to_owned()),
-                ));
-                Type::Function(Function::UserDefined(object))
+                Type::Null
             }
         }
     } else if let Function::Python(code, depent) = function {
