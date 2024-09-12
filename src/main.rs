@@ -1402,7 +1402,7 @@ fn tokenize_expr(input: String) -> Vec<String> {
                 }
             }
             ' ' | '\n' | '\t' | '\r' | '　' => {
-                if in_parentheses != 0 || in_parentheses != 0 || in_parentheses != 0 || in_quote {
+                if in_parentheses != 0 || in_quote {
                     current_token.push(c);
                 } else {
                     if !current_token.is_empty() {
@@ -1417,9 +1417,7 @@ fn tokenize_expr(input: String) -> Vec<String> {
         }
     }
 
-    if !(in_parentheses != 0 || in_parentheses != 0 || in_parentheses != 0 || in_quote)
-        && !current_token.is_empty()
-    {
+    if !(in_parentheses != 0 || in_quote) && !current_token.is_empty() {
         tokens.push(current_token);
     }
     tokens
