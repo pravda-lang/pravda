@@ -11,14 +11,9 @@ use std::path::Path;
 /// The entry point
 fn main() {
     let memory: &mut HashMap<String, Type> = &mut HashMap::from([
-        ("char.new-line".to_string(), Type::String("\n".to_string())),
-        ("char.tab".to_string(), Type::String("\t".to_string())),
-        (
-            "char.double-quote".to_string(),
-            Type::String("\"".to_string()),
-        ),
-        ("char.semicolon".to_string(), Type::String(";".to_string())),
-        ("char.equal".to_string(), Type::String("=".to_string())),
+        ("new-line".to_string(), Type::String("\n".to_string())),
+        ("tab".to_string(), Type::String("\t".to_string())),
+        ("double-quote".to_string(), Type::String("\"".to_string())),
         (
             "+".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
@@ -943,10 +938,11 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
     let mut after_equal = String::new();
     let mut is_equal = false;
     let mut in_parentheses: usize = 0;
+    let mut in_quote = false;
 
     for c in input.chars() {
         match c {
-            '{' => {
+            '{' if !in_quote => {
                 if is_equal {
                     after_equal.push(c);
                 } else {
@@ -954,7 +950,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                 }
                 in_parentheses += 1;
             }
-            '}' => {
+            '}' if !in_quote => {
                 if is_equal {
                     after_equal.push(c);
                 } else {
@@ -962,7 +958,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                 }
                 in_parentheses -= 1;
             }
-            ';' => {
+            ';' if !in_quote => {
                 if in_parentheses != 0 {
                     if is_equal {
                         after_equal.push(c);
@@ -983,7 +979,7 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                     }
                 }
             }
-            '=' => {
+            '=' if !in_quote => {
                 if in_parentheses != 0 {
                     if is_equal {
                         after_equal.push(c);
@@ -992,6 +988,14 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                     }
                 } else {
                     is_equal = true;
+                }
+            }
+            '"' => {
+                in_quote = !in_quote;
+                if is_equal {
+                    after_equal.push(c);
+                } else {
+                    current_token.push(c);
                 }
             }
             _ => {
