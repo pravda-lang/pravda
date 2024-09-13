@@ -3,7 +3,7 @@ use clap::Parser;
 use dirs::home_dir;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
-use rustyline::Editor;
+use rustyline::DefaultEditor;
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::read_to_string;
@@ -38,7 +38,7 @@ fn main() {
         }
     } else {
         println!("Pravda {VERSION}");
-        let mut rl = Editor::<()>::new();
+        let mut rl = DefaultEditor::new().unwrap();
 
         // REPL
         loop {
@@ -244,7 +244,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "input".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::String({
-                    let mut rl = Editor::<()>::new();
+                    let mut rl = DefaultEditor::new().unwrap();
                     rl.readline(&if let Some(prompt) = params.get(0) {
                         prompt.get_string()
                     } else {
