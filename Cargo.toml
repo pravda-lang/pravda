@@ -7,4 +7,4 @@ edition = "2021"
 dirs = "5.0.1"
 pyo3 = "0.18"
 rustyline = "9.0"
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.5.17", features = ["derive"] }
