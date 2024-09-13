@@ -20,8 +20,10 @@ const VERSION: &str = "0.7.2";
     after_help = "For more information, visit https://pravda-lang.github.io/",
 )]
 struct Args {
+    /// Run the script file
     #[arg(short, long)]
     file: Option<String>,
+    /// Run passed string as code
     #[arg(short = 'l', long)]
     one_liner: Option<String>,
 }
