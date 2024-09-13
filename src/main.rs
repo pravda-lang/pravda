@@ -757,14 +757,27 @@ impl Type {
                     .collect::<Vec<String>>()
                     .join(" ")
             ),
-            Type::Null => "null".to_string(),
+            Type::Null => String::new(),
             Type::Function(Function::BuiltIn(function)) => {
                 format!("<Built-in function: {:?}>", function)
             }
-            Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+            Type::Function(Function::UserDefined(value)) => {
+                format!(
+                    "<User-defined function: ({})>",
+                    value
+                        .iter()
+                        .last()
+                        .unwrap()
+                        .0
+                        .iter()
+                        .map(|i| i.get_symbol())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
+            }
             Type::Block(value) => format!("{{ {} }}", value),
-            Type::Function(Function::Python(_, _)) => "<Python function>".to_string(),
-            Type::Function(Function::Module(_)) => "<Module function>".to_string(),
+            Type::Function(Function::Python(path, _)) => format!("<Python function: {path}>"),
+            Type::Function(Function::Module(path)) => format!("<Module function: {path}>"),
         }
     }
 
@@ -787,10 +800,23 @@ impl Type {
             Type::Function(Function::BuiltIn(function)) => {
                 format!("<Built-in function: {:?}>", function)
             }
-            Type::Function(Function::UserDefined(_)) => "<User-defined function>".to_string(),
+            Type::Function(Function::UserDefined(value)) => {
+                format!(
+                    "<User-defined function: ({})>",
+                    value
+                        .iter()
+                        .last()
+                        .unwrap()
+                        .0
+                        .iter()
+                        .map(|i| i.get_symbol())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
+            }
             Type::Block(value) => format!("{{ {} }}", value),
-            Type::Function(Function::Python(_, _)) => "<Python function>".to_string(),
-            Type::Function(Function::Module(_)) => "<Module function>".to_string(),
+            Type::Function(Function::Python(path, _)) => format!("<Python function: {path}>"),
+            Type::Function(Function::Module(path)) => format!("<Module function: {path}>"),
         }
     }
 
