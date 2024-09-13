@@ -12,7 +12,7 @@ use std::path::Path;
 const VERSION: &str = "0.7.2";
 
 #[derive(Parser, Debug)]
-#[command(name = "pravda")]
+#[command(name = "Pravda")]
 #[command(
     about = "A functional programming language that best of both worlds between Haskell and Lisp"
 )]
