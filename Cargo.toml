@@ -1,8 +1,10 @@
 [package]
 name = "pravda"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 
 [dependencies]
 dirs = "5.0.1"
 pyo3 = "0.18"
+rustyline = "9.0"
+clap = { version = "4.0", features = ["derive"] }
