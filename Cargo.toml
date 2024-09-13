@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 dirs = "5.0.1"
 pyo3 = "0.18"
-rustyline = "9.0"
+rustyline = "11.0"
 clap = { version = "4.5.17", features = ["derive"] }
