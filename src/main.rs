@@ -22,6 +22,8 @@ const VERSION: &str = "0.7.2";
 struct Args {
     #[arg(short, long)]
     file: Option<String>,
+    #[arg(short = 'l', long)]
+    one_liner: Option<String>,
 }
 
 /// The entry point
@@ -36,6 +38,9 @@ fn main() {
         } else {
             eprintln!("Error! it fault to open the script file")
         }
+    } else if let Some(code) = args.one_liner {
+        // Run from one-liner code
+        println!("{}", run_program(code, memory).get_symbol());
     } else {
         println!("Pravda {VERSION}");
         let mut rl = DefaultEditor::new().unwrap();
