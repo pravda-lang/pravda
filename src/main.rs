@@ -12,11 +12,13 @@ use std::path::Path;
 const VERSION: &str = "0.7.2";
 
 #[derive(Parser, Debug)]
-#[command(name = "Pravda")]
 #[command(
-    about = "A functional programming language that best of both worlds between Haskell and Lisp"
+    name = "Pravda",
+    version = VERSION,
+    author = "梶塚太智 <kajizukataichi@outlook.jp>"
+    about = "A functional programming language that best of both worlds between Haskell and Lisp",
+    after_help = "For more information, visit https://pravda-lang.github.io/",
 )]
-#[command(version = VERSION)]
 struct Args {
     #[arg(short, long)]
     file: Option<String>,
