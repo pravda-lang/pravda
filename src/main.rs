@@ -517,17 +517,13 @@ fn builtin_functions() -> HashMap<String, Type> {
                                 code.split("\n").map(|s| s.to_string()).collect();
                             let (depent, code): (Vec<String>, String) = (
                                 {
-                                    if lines[0].to_string().trim().starts_with("import") {
+                                    if lines[0].to_string().trim().starts_with("import ") {
                                         let import: Vec<String> = lines[0]
-                                            .to_string()
+                                            .replace("import ", "")
                                             .split(",")
                                             .map(|i| i.trim().to_string())
                                             .collect();
-                                        if import[0].is_empty() {
-                                            vec![]
-                                        } else {
-                                            import
-                                        }
+                                        import
                                     } else {
                                         vec![]
                                     }
