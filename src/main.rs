@@ -860,7 +860,7 @@ impl Type {
                 value
                     .replace("\n", "\\n")
                     .replace("\t", "\\t")
-                    .replace("\"", &format!("\\{}", "'"))
+                    .replace("\"", &format!("\\{}", "\""))
             ),
             Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => {
