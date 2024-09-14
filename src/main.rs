@@ -276,21 +276,6 @@ fn builtin_functions() -> HashMap<String, Type> {
             })),
         ),
         (
-            "read-file".to_string(),
-            Type::Function(Function::BuiltIn(|params, _| {
-                if let Some(path) = params.get(0) {
-                    let path = path.get_string(); // Create a binding to extend the lifetime
-                    if let Ok(data) = read_to_string(Path::new(&path)) {
-                        Type::String(data)
-                    } else {
-                        Type::Null
-                    }
-                } else {
-                    Type::Null
-                }
-            })),
-        ),
-        (
             "list".to_string(),
             Type::Function(Function::BuiltIn(|params, _| Type::List(params))),
         ),
