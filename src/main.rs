@@ -855,7 +855,10 @@ impl Type {
     fn to_pyobj(&self) -> String {
         match self {
             Type::Number(value) => value.to_string(),
-            Type::String(value) => format!("\"{}\"", value).replace("\n", "\\n"),
+            Type::String(value) => format!("\"{}\"", value)
+                .replace("\n", "\\n")
+                .replace("\t", "\\t")
+                .replace("\"", &("\\".to_string() + "\"")),
             Type::Symbol(value) => value.to_string(),
             Type::Bool(value) => {
                 let temp = value.to_string().chars().collect::<Vec<char>>();
