@@ -502,11 +502,36 @@ fn builtin_functions() -> HashMap<String, Type> {
         ),
         (
             "load".to_string(),
-            Type::Function(Function::BuiltIn(|params, memory| {
-                let mut memory = memory.clone();
+            Type::Function(Function::BuiltIn(|params, _| {
                 if params.len() >= 1 {
-                    if let Ok(file) = read_to_string(Path::new(&params[0].get_string())) {
-                        run_program(file, &mut memory)
+                    let identify = params[0].get_string();
+
+                    if let (_, Ok(code)) | (Ok(code), _) = (
+                        read_to_string(Path::new(&identify.clone())),
+                        read_to_string(home_dir().unwrap().join(Path::new(&identify.clone()))),
+                    ) {
+                        if params[0].get_string().ends_with(".pvd") {
+                            Type::Function(Function::Module(code))
+                        } else if params[0].get_string().ends_with(".py") {
+                            let code: Vec<String> =
+                                code.split("\n").map(|s| s.to_string()).collect();
+                            let (depent, code): (Vec<String>, String) = (
+                                code[0]
+                                    .replace("import", "")
+                                    .to_string()
+                                    .split(",")
+                                    .map(|i| i.trim().to_string())
+                                    .collect(),
+                                code[1..code.len()]
+                                    .iter()
+                                    .map(|i| i.to_string())
+                                    .collect::<Vec<String>>()
+                                    .join("\n"),
+                            );
+                            Type::Function(Function::Python(code, depent))
+                        } else {
+                            Type::Null
+                        }
                     } else {
                         Type::Null
                     }
@@ -1070,38 +1095,17 @@ fn eval_expr(expr: String, memory: &HashMap<String, Type>) -> Type {
                 value.to_owned()
             }
         } else {
-            if let (_, Ok(ref code)) | (Ok(ref code), _) = (
-                read_to_string(Path::new(&identify.clone())),
-                read_to_string(home_dir().unwrap().join(Path::new(&identify.clone()))),
-            ) {
-                if identify.ends_with(".py") {
-                    let code: Vec<&str> = code.split("\n").collect();
-                    let (depent, code): (Vec<String>, String) = (
-                        code[0]
-                            .replace("import", "")
-                            .to_string()
-                            .split(",")
-                            .map(|i| i.trim().to_string())
-                            .collect(),
-                        code[1..code.len()]
-                            .iter()
-                            .map(|i| i.to_string())
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                    );
-                    call_function(
-                        Function::Python(code, depent),
-                        expr[1..expr.len()].to_vec(),
-                        &mut memory.clone(),
-                    )
-                } else if identify.ends_with(".pvd") {
-                    call_function(
-                        Function::Module(code.to_string()),
-                        expr[1..expr.len()].to_vec(),
-                        &mut memory.clone(),
-                    )
+            if Path::new(&identify.clone()).exists()
+                || home_dir()
+                    .unwrap()
+                    .join(Path::new(&identify.clone()))
+                    .exists()
+            {
+                let result = run_program(format!("load {identify}"), &mut memory.clone());
+                if let Type::Function(func) = result {
+                    call_function(func, expr[1..expr.len()].to_vec(), memory)
                 } else {
-                    Type::Null
+                    result
                 }
             } else {
                 expr[0].clone()
