@@ -513,20 +513,26 @@ fn builtin_functions() -> HashMap<String, Type> {
                         if params[0].get_string().ends_with(".pvd") {
                             Type::Function(Function::Module(code))
                         } else if params[0].get_string().ends_with(".py") {
-                            let code: Vec<String> =
+                            let lines: Vec<String> =
                                 code.split("\n").map(|s| s.to_string()).collect();
                             let (depent, code): (Vec<String>, String) = (
-                                code[0]
-                                    .replace("import", "")
-                                    .to_string()
-                                    .split(",")
-                                    .map(|i| i.trim().to_string())
-                                    .collect(),
-                                code[1..code.len()]
-                                    .iter()
-                                    .map(|i| i.to_string())
-                                    .collect::<Vec<String>>()
-                                    .join("\n"),
+                                {
+                                    if lines[0].to_string().trim().starts_with("import") {
+                                        let import: Vec<String> = lines[0]
+                                            .to_string()
+                                            .split(",")
+                                            .map(|i| i.trim().to_string())
+                                            .collect();
+                                        if import[0].is_empty() {
+                                            vec![]
+                                        } else {
+                                            import
+                                        }
+                                    } else {
+                                        vec![]
+                                    }
+                                },
+                                code,
                             );
                             Type::Function(Function::Python(code, depent))
                         } else {
