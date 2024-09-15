@@ -84,7 +84,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "+".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = if let Some(result) = params.get(0) {
+                let mut result: f64 = if let Some(result) = params.first() {
                     result.to_owned()
                 } else {
                     return Type::Null;
@@ -102,7 +102,7 @@ fn builtin_functions() -> HashMap<String, Type> {
                 if params.len() == 1 {
                     Type::Number(-params[0])
                 } else {
-                    let mut result: f64 = if let Some(result) = params.get(0) {
+                    let mut result: f64 = if let Some(result) = params.first() {
                         result.to_owned()
                     } else {
                         return Type::Null;
@@ -118,7 +118,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "*".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = if let Some(result) = params.get(0) {
+                let mut result: f64 = if let Some(result) = params.first() {
                     result.to_owned()
                 } else {
                     return Type::Null;
@@ -133,7 +133,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "/".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = if let Some(result) = params.get(0) {
+                let mut result: f64 = if let Some(result) = params.first() {
                     result.to_owned()
                 } else {
                     return Type::Null;
@@ -148,7 +148,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "%".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = if let Some(result) = params.get(0) {
+                let mut result: f64 = if let Some(result) = params.first() {
                     result.to_owned()
                 } else {
                     return Type::Null;
@@ -163,7 +163,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "^".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 let params: Vec<f64> = params.iter().map(|i| i.get_number()).collect();
-                let mut result: f64 = if let Some(result) = params.get(0) {
+                let mut result: f64 = if let Some(result) = params.first() {
                     result.to_owned()
                 } else {
                     return Type::Null;
@@ -222,7 +222,7 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "not".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if params.len() >= 1 {
+                if !params.is_empty() {
                     Type::Bool(!params[0].get_bool())
                 } else {
                     Type::Null
@@ -240,7 +240,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             "split".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::List({
-                    let text = if let Some(count) = params.get(0) {
+                    let text = if let Some(count) = params.first() {
                         count.get_string().to_owned()
                     } else {
                         return Type::Null;
@@ -262,7 +262,7 @@ fn builtin_functions() -> HashMap<String, Type> {
             Type::Function(Function::BuiltIn(|params, _| {
                 Type::String({
                     let mut rl = DefaultEditor::new().unwrap();
-                    rl.readline(&if let Some(prompt) = params.get(0) {
+                    rl.readline(&if let Some(prompt) = params.first() {
                         prompt.get_string()
                     } else {
                         "".to_string()
@@ -292,8 +292,8 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "car".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if let Some(list) = params.get(0) {
-                    if let Some(car) = list.get_list().get(0) {
+                if let Some(list) = params.first() {
+                    if let Some(car) = list.get_list().first() {
                         car.clone()
                     } else {
                         Type::Null
@@ -306,7 +306,7 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "cdr".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if let Some(list) = params.get(0) {
+                if let Some(list) = params.first() {
                     if list.get_list().len() >= 2 {
                         Type::List(list.get_list()[1..list.get_list().len()].to_vec())
                     } else {
@@ -320,9 +320,9 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "len".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if let Some(Type::List(list)) = params.get(0) {
+                if let Some(Type::List(list)) = params.first() {
                     Type::Number(list.len() as f64)
-                } else if let Some(Type::String(string)) = params.get(0) {
+                } else if let Some(Type::String(string)) = params.first() {
                     Type::Number(string.chars().count() as f64)
                 } else {
                     Type::Null
@@ -370,12 +370,12 @@ fn builtin_functions() -> HashMap<String, Type> {
                     } else {
                         return Type::Null;
                     };
-                    let mut memory = memory.clone();
+                    let memory = memory.clone();
                     Type::List(
                         params[0]
                             .get_list()
                             .iter()
-                            .map(|i| call_function(func.clone(), vec![i.clone()], &mut memory))
+                            .map(|i| call_function(func.clone(), vec![i.clone()], &memory))
                             .collect(),
                     )
                 } else {
@@ -392,11 +392,11 @@ fn builtin_functions() -> HashMap<String, Type> {
                     } else {
                         return Type::Null;
                     };
-                    let mut memory = memory.clone();
+                    let memory = memory.clone();
                     let mut result = Vec::new();
 
                     for item in params[0].get_list() {
-                        if call_function(func.clone(), vec![item.clone()], &mut memory).get_bool() {
+                        if call_function(func.clone(), vec![item.clone()], &memory).get_bool() {
                             result.push(item);
                         }
                     }
@@ -415,11 +415,11 @@ fn builtin_functions() -> HashMap<String, Type> {
                     } else {
                         return Type::Null;
                     };
-                    let mut memory = memory.clone();
+                    let memory = memory.clone();
 
                     let mut temp = Type::Null;
                     for item in params[0].get_list() {
-                        temp = call_function(func.clone(), vec![item.clone()], &mut memory);
+                        temp = call_function(func.clone(), vec![item.clone()], &memory);
                     }
                     temp
                 } else {
@@ -444,7 +444,7 @@ fn builtin_functions() -> HashMap<String, Type> {
 
                     let mut memory = memory.clone();
                     let mut temp = Type::Null;
-                    while eval_expr(cond.clone(), &mut memory).get_bool() {
+                    while eval_expr(cond.clone(), &memory).get_bool() {
                         temp = run_program(block.clone(), &mut memory);
                     }
                     temp
@@ -460,20 +460,18 @@ fn builtin_functions() -> HashMap<String, Type> {
                 if params.len() >= 2 {
                     if params[0].get_bool() {
                         match params[1].clone() {
-                            Type::Expr(code) => eval_expr(code, &mut memory),
+                            Type::Expr(code) => eval_expr(code, &memory),
+                            Type::Block(block) => run_program(block, &mut memory),
+                            other => other,
+                        }
+                    } else if params.len() >= 3 {
+                        match params[2].clone() {
+                            Type::Expr(code) => eval_expr(code, &memory),
                             Type::Block(block) => run_program(block, &mut memory),
                             other => other,
                         }
                     } else {
-                        if params.len() >= 3 {
-                            match params[2].clone() {
-                                Type::Expr(code) => eval_expr(code, &mut memory),
-                                Type::Block(block) => run_program(block, &mut memory),
-                                other => other,
-                            }
-                        } else {
-                            Type::Null
-                        }
+                        Type::Null
                     }
                 } else {
                     Type::Null
@@ -484,9 +482,9 @@ fn builtin_functions() -> HashMap<String, Type> {
             "eval".to_string(),
             Type::Function(Function::BuiltIn(|params, memory| {
                 let mut memory = memory.clone();
-                if params.len() >= 1 {
+                if !params.is_empty() {
                     match params[0].clone() {
-                        Type::Expr(code) => eval_expr(code, &mut memory),
+                        Type::Expr(code) => eval_expr(code, &memory),
                         Type::Block(block) => run_program(block, &mut memory),
                         other => other,
                     }
@@ -498,7 +496,7 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "load".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if params.len() >= 1 {
+                if !params.is_empty() {
                     let identify = params[0].get_string();
 
                     if let (_, Ok(code)) | (Ok(code), _) = (
@@ -539,7 +537,7 @@ fn builtin_functions() -> HashMap<String, Type> {
         ),
         (
             "cmd-args".to_string(),
-            Type::List(args().map(|i| Type::String(i)).collect()),
+            Type::List(args().map(Type::String).collect()),
         ),
         (
             "cast".to_string(),
@@ -561,7 +559,7 @@ fn builtin_functions() -> HashMap<String, Type> {
         (
             "type".to_string(),
             Type::Function(Function::BuiltIn(|params, _| {
-                if params.len() >= 1 {
+                if !params.is_empty() {
                     match params[0] {
                         Type::Number(_) => Type::String("number".to_string()),
                         Type::String(_) => Type::String("string".to_string()),
@@ -755,7 +753,7 @@ impl Type {
                     0.0
                 }
             }
-            Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_number(),
+            Type::List(value) => value.first().unwrap_or(&Type::Null).get_number(),
             Type::Null => 0.0,
             Type::Function(Function::UserDefined(value)) => value.len() as f64,
             Type::Function(Function::Python(value, _))
@@ -847,7 +845,7 @@ impl Type {
             Type::Number(value) => *value != 0.0,
             Type::String(value) | Type::Symbol(value) => value.trim().parse().unwrap_or_default(),
             Type::Bool(value) => *value,
-            Type::List(value) => value.get(0).unwrap_or(&Type::Null).get_bool(),
+            Type::List(value) => value.first().unwrap_or(&Type::Null).get_bool(),
             Type::Null => false,
             Type::Function(_) => true,
             Type::Expr(value) | Type::Block(value) => !value.is_empty(),
@@ -907,6 +905,7 @@ enum Function {
     ),
     /// User-defined function written in Pravda code
     UserDefined(
+        #[allow(clippy::type_complexity)]
         Vec<(
             Vec<Type>, // The argument pattern and become the key
             (
@@ -983,7 +982,7 @@ fn run_program(source: String, memory: &mut HashMap<String, Type>) -> Type {
     result
 }
 
-/// return 2 length vector splited by it if the line has `=` else just the line in the top vector
+/// return 2 length vector splitted by it if the line has `=` else just the line in the top vector
 fn tokenize_program(input: String) -> Vec<Vec<String>> {
     let mut tokens: Vec<Vec<String>> = Vec::new();
     let mut current_token = String::new();
@@ -1017,17 +1016,15 @@ fn tokenize_program(input: String) -> Vec<Vec<String>> {
                     } else {
                         current_token.push(c);
                     }
-                } else {
-                    if !current_token.is_empty() {
-                        if is_equal {
-                            is_equal = false;
-                            tokens.push(vec![current_token.clone(), after_equal.clone()]);
-                            current_token.clear();
-                            after_equal.clear();
-                        } else {
-                            tokens.push(vec![current_token.clone()]);
-                            current_token.clear();
-                        }
+                } else if !current_token.is_empty() {
+                    if is_equal {
+                        is_equal = false;
+                        tokens.push(vec![current_token.clone(), after_equal.clone()]);
+                        current_token.clear();
+                        after_equal.clear();
+                    } else {
+                        tokens.push(vec![current_token.clone()]);
+                        current_token.clear();
                     }
                 }
             }
@@ -1097,22 +1094,20 @@ fn eval_expr(expr: String, memory: &HashMap<String, Type>) -> Type {
             } else {
                 value.to_owned()
             }
-        } else {
-            if Path::new(&identify.clone()).exists()
-                || home_dir()
-                    .unwrap()
-                    .join(Path::new(&identify.clone()))
-                    .exists()
-            {
-                let result = run_program(format!("load {identify}"), &mut memory.clone());
-                if let Type::Function(func) = result {
-                    call_function(func, expr[1..expr.len()].to_vec(), memory)
-                } else {
-                    result
-                }
+        } else if Path::new(&identify.clone()).exists()
+            || home_dir()
+                .unwrap()
+                .join(Path::new(&identify.clone()))
+                .exists()
+        {
+            let result = run_program(format!("load {identify}"), &mut memory.clone());
+            if let Type::Function(func) = result {
+                call_function(func, expr[1..expr.len()].to_vec(), memory)
             } else {
-                expr[0].clone()
+                result
             }
+        } else {
+            expr[0].clone()
         }
     } else if let Type::Function(liberal) = &expr[0] {
         call_function(liberal.clone(), expr[1..expr.len()].to_vec(), memory)
@@ -1121,26 +1116,24 @@ fn eval_expr(expr: String, memory: &HashMap<String, Type>) -> Type {
         let result = run_program(block.to_owned(), &mut memory.clone());
         if let Type::Function(func) = result {
             // If it's function, call it
-            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+            call_function(func, expr[1..expr.len()].to_vec(), &memory.clone())
         } else {
             result
         }
     } else if let Type::Expr(code) = &expr[0] {
         // Evaluate the expression
-        let result = eval_expr(code.to_owned(), &mut memory.clone());
+        let result = eval_expr(code.to_owned(), &memory.clone());
         if let Type::Function(func) = result {
             // If it's function, call it
-            call_function(func, expr[1..expr.len()].to_vec(), &mut memory.clone())
+            call_function(func, expr[1..expr.len()].to_vec(), &memory.clone())
         } else {
             result
         }
+    } else if expr.len() == 1 {
+        expr[0].to_owned()
     } else {
-        if expr.len() == 1 {
-            expr[0].to_owned()
-        } else {
-            // If there's multiple value, return it as a list
-            Type::List(expr)
-        }
+        // If there's multiple value, return it as a list
+        Type::List(expr)
     }
 }
 
@@ -1158,13 +1151,8 @@ fn tokenize_expr(input: String) -> Vec<String> {
     for c in input.chars() {
         match c {
             '(' if !in_quote => {
-                if in_parentheses != 0 {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                } else {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                }
+                in_parentheses += 1;
+                current_token.push(c);
             }
             ')' if !in_quote => {
                 if in_parentheses != 0 {
@@ -1177,13 +1165,8 @@ fn tokenize_expr(input: String) -> Vec<String> {
                 }
             }
             '[' if !in_quote => {
-                if in_parentheses != 0 {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                } else {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                }
+                in_parentheses += 1;
+                current_token.push(c);
             }
             ']' if !in_quote => {
                 if in_parentheses != 0 {
@@ -1196,13 +1179,8 @@ fn tokenize_expr(input: String) -> Vec<String> {
                 }
             }
             '{' if !in_quote => {
-                if in_parentheses != 0 {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                } else {
-                    in_parentheses += 1;
-                    current_token.push(c);
-                }
+                in_parentheses += 1;
+                current_token.push(c);
             }
             '}' if !in_quote => {
                 if in_parentheses != 0 {
@@ -1232,11 +1210,9 @@ fn tokenize_expr(input: String) -> Vec<String> {
             ' ' | '\n' | '\t' | '\r' | '　' => {
                 if in_parentheses != 0 || in_quote {
                     current_token.push(c);
-                } else {
-                    if !current_token.is_empty() {
-                        tokens.push(current_token.clone());
-                        current_token.clear();
-                    }
+                } else if !current_token.is_empty() {
+                    tokens.push(current_token.clone());
+                    current_token.clear();
                 }
             }
             _ => {
@@ -1245,7 +1221,7 @@ fn tokenize_expr(input: String) -> Vec<String> {
         }
     }
 
-    if !(in_parentheses != 0 || in_quote) && !current_token.is_empty() {
+    if !(in_parentheses != 0 || in_quote || current_token.is_empty()) {
         tokens.push(current_token);
     }
     tokens
@@ -1263,7 +1239,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
     for i in args {
         // Prepare arguments
         if let Type::Expr(code) = i.clone() {
-            params.push(eval_expr(code, &mut memory.clone()))
+            params.push(eval_expr(code, &memory.clone()))
         } else if let Type::Block(block) = i.clone() {
             params.push(run_program(block, &mut memory.clone()))
         } else if let Type::Symbol(name) = i.clone() {
@@ -1282,7 +1258,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
                         params.push(j.to_owned())
                     }
                 } else if let Type::Expr(code) = value {
-                    let result = eval_expr(code, &mut memory.clone());
+                    let result = eval_expr(code, &memory.clone());
                     for j in result.get_list() {
                         // Expand　the list as argument
                         params.push(j.to_owned())
@@ -1303,26 +1279,23 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             } else if name.starts_with("lazy") {
                 // Processing of lazy evaluate expression
                 params.push(Type::parse(name["lazy".len()..name.len()].to_string()))
-            } else {
-                if let Some(value) = memory.get(&name) {
-                    if value.get_symbol().starts_with("@") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()[1..value.get_symbol().len()].to_string(),
-                        );
-                        params.push(value)
-                    } else if value.get_symbol().starts_with("lazy") {
-                        // Processing of lazy evaluate variable
-                        let value = Type::parse(
-                            value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
-                        );
-                        params.push(value)
-                    } else {
-                        params.push(value.to_owned())
-                    }
+            } else if let Some(value) = memory.get(&name) {
+                if value.get_symbol().starts_with("@") {
+                    // Processing of lazy evaluate variable
+                    let value =
+                        Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                    params.push(value)
+                } else if value.get_symbol().starts_with("lazy") {
+                    // Processing of lazy evaluate variable
+                    let value = Type::parse(
+                        value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                    );
+                    params.push(value)
                 } else {
-                    params.push(i.to_owned())
+                    params.push(value.to_owned())
                 }
+            } else {
+                params.push(i.to_owned())
             }
         } else {
             params.push(i.to_owned());
@@ -1353,83 +1326,76 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             temp
         } {
             // Matched pattern
-            let mut scope = scope.clone();
-            eval_expr(program.to_string(), &mut scope)
-        } else {
-            if let Some((args, (program, scope))) = {
-                // Normal argument, not pattern
-                let mut flag = None;
-                for item in {
-                    let mut object = object.clone();
-                    object.reverse();
-                    object
-                } {
-                    if item
-                        .0
-                        .iter()
-                        .all(|i| if let Type::Symbol(_) = i { true } else { false })
-                    {
-                        flag = Some(item);
-                        break;
-                    }
-                }
-                flag
+            let scope = scope.clone();
+            eval_expr(program.to_string(), &scope)
+        } else if let Some((args, (program, scope))) = {
+            // Normal argument, not pattern
+            let mut flag = None;
+            for item in {
+                let mut object = object.clone();
+                object.reverse();
+                object
             } {
-                let mut scope: &mut HashMap<String, Type> = &mut scope.clone();
-                scope.extend(memory.to_owned()); // Update memory
-                if args[args.len() - 1].get_symbol().starts_with("~") {
-                    for (arg, value) in args.iter().zip(params.to_vec()) {
-                        // Processing of mutable length argument
-                        if arg.get_symbol().starts_with("~") {
-                            scope.insert(
-                                arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
-                                Type::List(
-                                    params[params
-                                        .iter()
-                                        .position(|i| i.get_symbol() == value.get_symbol())
-                                        .unwrap()
-                                        ..params.len()]
-                                        .to_vec(),
-                                ),
-                            );
-                        } else {
-                            // Set argument value as variable
-                            scope.insert(arg.get_symbol(), value);
-                        }
-                    }
-                } else {
-                    for (arg, value) in args.iter().zip(params.to_vec()) {
+                if item.0.iter().all(|i| matches!(i, Type::Symbol(_))) {
+                    flag = Some(item);
+                    break;
+                }
+            }
+            flag
+        } {
+            let scope: &mut HashMap<String, Type> = &mut scope.clone();
+            scope.extend(memory.to_owned()); // Update memory
+            if args[args.len() - 1].get_symbol().starts_with("~") {
+                for (arg, value) in args.iter().zip(params.to_vec()) {
+                    // Processing of mutable length argument
+                    if arg.get_symbol().starts_with("~") {
+                        scope.insert(
+                            arg.get_symbol()[1..arg.get_symbol().len()].to_string(),
+                            Type::List(
+                                params[params
+                                    .iter()
+                                    .position(|i| i.get_symbol() == value.get_symbol())
+                                    .unwrap()..params.len()]
+                                    .to_vec(),
+                            ),
+                        );
+                    } else {
                         // Set argument value as variable
                         scope.insert(arg.get_symbol(), value);
                     }
                 }
+            } else {
+                for (arg, value) in args.iter().zip(params.to_vec()) {
+                    // Set argument value as variable
+                    scope.insert(arg.get_symbol(), value);
+                }
+            }
 
-                if args.len() <= params.len() {
-                    // Execute function code
-                    if let Type::Block(block) = Type::parse(program.clone()) {
-                        run_program(block, &mut scope)
-                    } else {
-                        eval_expr(program.to_string(), &mut scope)
-                    }
+            if args.len() <= params.len() {
+                // Execute function code
+                if let Type::Block(block) = Type::parse(program.clone()) {
+                    run_program(block, scope)
                 } else {
-                    // Partial application of the function
-                    let mut object = object.clone();
-                    object.push((
-                        args[params.len()..args.len()].to_vec(),
-                        (program.clone(), scope.to_owned()),
-                    ));
-                    Type::Function(Function::UserDefined(object))
+                    eval_expr(program.to_string(), scope)
                 }
             } else {
-                Type::Null
+                // Partial application of the function
+                let mut object = object.clone();
+                object.push((
+                    args[params.len()..args.len()].to_vec(),
+                    (program.clone(), scope.to_owned()),
+                ));
+                Type::Function(Function::UserDefined(object))
             }
+        } else {
+            Type::Null
         }
     } else if let Function::Python(code, depent) = function {
         call_python(code, params, depent).unwrap_or(Type::Null)
     } else if let Function::Module(code) = function {
         let result = run_program(code, &mut memory.clone());
         if let Type::Function(func) = result {
-            call_function(func, params, &mut memory.clone())
+            call_function(func, params, &memory.clone())
         } else {
             result.clone()
         }
@@ -1465,7 +1431,7 @@ result = main({})
             };
         }
 
-        if let Err(_) = py.run(&code, Some(context), Some(context)) {
+        if py.run(&code, Some(context), Some(context)).is_err() {
             return None;
         };
         let result = context.get_item("result").unwrap();
