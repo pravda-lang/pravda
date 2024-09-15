@@ -19,28 +19,38 @@ const VERSION: &str = "0.7.2";
     about = "A functional programming language that best of both worlds between Haskell and Lisp",
     after_help = "For more information, visit https://pravda-lang.github.io/",
 )]
-struct Args {
+struct Cli {
     /// Run the script file
     #[arg(short, long)]
     file: Option<String>,
     /// Run passed string as code
     #[arg(short = 'l', long)]
     one_liner: Option<String>,
+    /// Command-line argument to pass the script
+    #[arg(long, num_args = 1..)]
+    args: Option<Vec<String>>,
 }
 
 /// The entry point
 fn main() {
     let memory = &mut builtin_functions();
 
-    let args = Args::parse();
-    if let Some(path) = args.file {
+    let cli = Cli::parse();
+    if let Some(args) = cli.args {
+        memory.insert(
+            "args".to_string(),
+            Type::List(args.iter().map(|i| Type::String(i.to_owned())).collect()),
+        );
+    }
+
+    if let Some(path) = cli.file {
         // Run from script file
         if let Ok(code) = read_to_string(Path::new(&path)) {
             run_program(code, memory);
         } else {
             eprintln!("Error! it fault to open the script file")
         }
-    } else if let Some(code) = args.one_liner {
+    } else if let Some(code) = cli.one_liner {
         // Run from one-liner code
         println!("{}", run_program(code, memory).get_symbol());
     } else {
