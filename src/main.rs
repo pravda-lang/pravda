@@ -21,14 +21,20 @@ const VERSION: &str = "0.7.2";
 )]
 struct Cli {
     /// Run the script file
-    #[arg(short, long)]
+    #[arg(index = 1)]
     file: Option<String>,
+
+    /// Command-line arguments to pass the script
+    #[arg(index = 2, num_args = 0..)]
+    args_position: Option<Vec<String>>,
+
+    /// Optional command-line arguments
+    #[arg(short='a', long="args", num_args = 0..)]
+    args_option: Option<Vec<String>>,
+
     /// Run passed string as code
     #[arg(short = 'l', long)]
     one_liner: Option<String>,
-    /// Command-line argument to pass the script
-    #[arg(long, num_args = 1..)]
-    args: Option<Vec<String>>,
 }
 
 /// The entry point
@@ -36,7 +42,7 @@ fn main() {
     let memory = &mut builtin_functions();
 
     let cli = Cli::parse();
-    if let Some(args) = cli.args {
+    if let (Some(args), _) | (_, Some(args)) = (cli.args_option, cli.args_position) {
         memory.insert(
             "args".to_string(),
             Type::List(args.iter().map(|i| Type::String(i.to_owned())).collect()),
@@ -905,7 +911,6 @@ enum Function {
     ),
     /// User-defined function written in Pravda code
     UserDefined(
-        #[allow(clippy::type_complexity)]
         Vec<(
             Vec<Type>, // The argument pattern and become the key
             (
