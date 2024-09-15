@@ -25,15 +25,15 @@ struct Cli {
     file: Option<String>,
 
     /// Command-line arguments to pass the script
-    #[arg(index = 2, num_args = 0..)]
+    #[arg(index = 2, value_name="ARGS", num_args = 0..)]
     args_position: Option<Vec<String>>,
 
     /// Optional command-line arguments
-    #[arg(short='a', long="args", num_args = 0..)]
+    #[arg(short='a', long="args", value_name="ARGS", num_args = 0..)]
     args_option: Option<Vec<String>>,
 
     /// Run passed string as code
-    #[arg(short = 'l', long)]
+    #[arg(short = 'l', value_name = "ONE LINER", long)]
     one_liner: Option<String>,
 }
 
