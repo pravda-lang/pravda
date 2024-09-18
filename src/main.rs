@@ -413,6 +413,34 @@ fn builtin_functions() -> HashMap<String, Type> {
             })),
         ),
         (
+            "reduce".to_string(),
+            Type::Function(Function::BuiltIn(|params, memory| {
+                if params.len() >= 3 {
+                    let func = if let Type::Function(func) = params[2].clone() {
+                        func
+                    } else {
+                        return Type::Null;
+                    };
+                    let variable = if let Type::Symbol(variable) = params[1].clone() {
+                        variable
+                    } else {
+                        return Type::Null;
+                    };
+
+                    let mut memory = memory.clone();
+                    let mut result = Type::Null;
+
+                    for item in params[0].get_list() {
+                        result = call_function(func.clone(), vec![item.clone()], &memory);
+                        memory.insert(variable.clone(), result.clone());
+                    }
+                    result
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
             "for".to_string(),
             Type::Function(Function::BuiltIn(|params, memory| {
                 if params.len() >= 2 {
@@ -492,6 +520,7 @@ fn builtin_functions() -> HashMap<String, Type> {
                     match params[0].clone() {
                         Type::Expr(code) => eval_expr(code, &memory),
                         Type::Block(block) => run_program(block, &mut memory),
+                        Type::Symbol(name) => memory.get(&name).unwrap_or(&Type::Null).to_owned(),
                         other => other,
                     }
                 } else {
