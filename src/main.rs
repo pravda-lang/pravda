@@ -428,7 +428,7 @@ fn builtin_functions() -> HashMap<String, Type> {
                     };
 
                     let mut memory = memory.clone();
-                    let mut result = Type::Null;
+                    let mut result = memory.get(&variable).unwrap_or(&Type::Null).to_owned();
 
                     for item in params[0].get_list() {
                         result = call_function(func.clone(), vec![item.clone()], &memory);
