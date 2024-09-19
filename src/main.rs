@@ -1273,9 +1273,37 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
     for i in args {
         // Prepare arguments
         if let Type::Expr(code) = i.clone() {
-            params.push(eval_expr(code, &memory.clone()))
+            let value = eval_expr(code, &memory.clone());
+            if value.get_symbol().starts_with("@") {
+                // Processing of lazy evaluate variable
+                let value =
+                    Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                params.push(value)
+            } else if value.get_symbol().starts_with("lazy") {
+                // Processing of lazy evaluate variable
+                let value = Type::parse(
+                    value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                );
+                params.push(value)
+            } else {
+                params.push(value.to_owned())
+            }
         } else if let Type::Block(block) = i.clone() {
-            params.push(run_program(block, &mut memory.clone()))
+            let value = run_program(block, &mut memory.clone());
+            if value.get_symbol().starts_with("@") {
+                // Processing of lazy evaluate variable
+                let value =
+                    Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                params.push(value)
+            } else if value.get_symbol().starts_with("lazy") {
+                // Processing of lazy evaluate variable
+                let value = Type::parse(
+                    value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                );
+                params.push(value)
+            } else {
+                params.push(value.to_owned())
+            }
         } else if let Type::Symbol(name) = i.clone() {
             if name.starts_with("~") {
                 // Processing of mutable length argument
