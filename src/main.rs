@@ -928,6 +928,14 @@ impl Type {
     }
 }
 
+type UserDefinedFunction = Vec<(
+    Vec<Type>, // The argument pattern and become the key
+    (
+        String,                // A program code of the function
+        HashMap<String, Type>, // Memory of variables and functions to access in the calling
+    ),
+)>;
+
 /// Function object used in the Pravda
 #[derive(Clone, Debug)]
 enum Function {
@@ -939,15 +947,7 @@ enum Function {
         ) -> Type,
     ),
     /// User-defined function written in Pravda code
-    UserDefined(
-        Vec<(
-            Vec<Type>, // The argument pattern and become the key
-            (
-                String,                // A program code of the function
-                HashMap<String, Type>, // Memory of variables and functions to access in the calling
-            ),
-        )>,
-    ),
+    UserDefined(UserDefinedFunction),
     /// Python library function
     Python(String, Vec<String>),
     /// Pravda module function
