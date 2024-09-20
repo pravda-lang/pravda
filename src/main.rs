@@ -543,7 +543,7 @@ fn builtin_functions() -> HashMap<String, Type> {
                         } else if params[0].get_string().ends_with(".py") {
                             let lines: Vec<String> =
                                 code.split("\n").map(|s| s.to_string()).collect();
-                            let (depent, code): (Vec<String>, String) = (
+                            let (depend, code): (Vec<String>, String) = (
                                 {
                                     if lines[0].to_string().trim().starts_with("import ") {
                                         let import: Vec<String> = lines[0]
@@ -558,7 +558,7 @@ fn builtin_functions() -> HashMap<String, Type> {
                                 },
                                 code,
                             );
-                            Type::Function(Function::Python(code, depent))
+                            Type::Function(Function::Python(code, depend))
                         } else {
                             Type::Null
                         }
@@ -928,12 +928,13 @@ impl Type {
     }
 }
 
+/// Object of user-defined function
 type UserDefinedFunction = Vec<(
     Vec<Type>, // The argument pattern and become the key
     (
-        String,                // A program code of the function
+        String,                // A program code of the function written in Pravda code
         HashMap<String, Type>, // Memory of variables and functions to access in the calling
-    ),
+    ), // Become the value
 )>;
 
 /// Function object used in the Pravda
@@ -946,12 +947,20 @@ enum Function {
             HashMap<String, Type>, // Memory of variables and functions to access in the calling
         ) -> Type,
     ),
+
     /// User-defined function written in Pravda code
     UserDefined(UserDefinedFunction),
+
     /// Python library function
-    Python(String, Vec<String>),
+    Python(
+        String,      //  Source code
+        Vec<String>, // Depends module
+    ),
+
     /// Pravda module function
-    Module(String),
+    Module(
+        String, // Source code
+    ),
 }
 
 /// Run the program and return result value
@@ -1016,7 +1025,12 @@ fn run_program(source: String, memory: &mut HashMap<String, Type>) -> Type {
     result
 }
 
+/// # Tokenize for the expression
 /// return 2 length vector splitted by it if the line has `=` else just the line in the top vector
+/// ```
+/// let result = tokenize_expr("3; x = { a = 1; a }")
+/// assert_eq!(result, vec![vec!["3"], vec!["x", "{ a = 1; a }"]]);
+/// ```
 fn tokenize_program(input: String) -> Vec<Vec<String>> {
     let mut tokens: Vec<Vec<String>> = Vec::new();
     let mut current_token = String::new();
@@ -1452,8 +1466,8 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
         } else {
             Type::Null
         }
-    } else if let Function::Python(code, depent) = function {
-        call_python(code, params, depent).unwrap_or(Type::Null)
+    } else if let Function::Python(code, depend) = function {
+        call_python(code, params, depend).unwrap_or(Type::Null)
     } else if let Function::Module(code) = function {
         let result = run_program(code, &mut memory.clone());
         if let Type::Function(func) = result {
@@ -1466,7 +1480,8 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
     }
 }
 
-fn call_python(code: String, args: Vec<Type>, depent: Vec<String>) -> Option<Type> {
+/// Calling function of the Python
+fn call_python(code: String, args: Vec<Type>, depend: Vec<String>) -> Option<Type> {
     pyo3::prepare_freethreaded_python();
     Python::with_gil(|py| {
         let context = PyDict::new(py);
@@ -1482,7 +1497,7 @@ result = main({})
                 .join(", ")
         );
 
-        for lib in depent {
+        for lib in depend {
             let module = if let Ok(module) = py.import(lib.as_str()) {
                 module
             } else {
