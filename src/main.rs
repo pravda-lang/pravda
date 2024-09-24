@@ -890,8 +890,8 @@ impl Type {
                 format!(
                     "<Struct data: ({})>",
                     value
-                        .keys()
-                        .map(|x| x.to_string())
+                        .iter()
+                        .map(|(k, v)| format!("{k} = {};", v.get_symbol()))
                         .collect::<Vec<String>>()
                         .join("; ")
                 )
@@ -943,8 +943,8 @@ impl Type {
                 format!(
                     "<Struct data: ({})>",
                     value
-                        .keys()
-                        .map(|x| x.to_string())
+                        .iter()
+                        .map(|(k, v)| format!("{k} = {};", v.get_symbol()))
                         .collect::<Vec<String>>()
                         .join("; ")
                 )
