@@ -888,7 +888,7 @@ impl Type {
             }
             Type::Struct(value) => {
                 format!(
-                    "<Struct data: ({})>",
+                    "struct{{{}}}",
                     value
                         .iter()
                         .map(|(k, v)| format!("{k} = {}", v.get_symbol()))
@@ -941,7 +941,7 @@ impl Type {
             }
             Type::Struct(value) => {
                 format!(
-                    "<Struct data: ({})>",
+                    "struct{{{}}}",
                     value
                         .iter()
                         .map(|(k, v)| format!("{k} = {}", v.get_symbol()))
