@@ -605,7 +605,34 @@ fn builtin_functions() -> HashMap<String, Type> {
                         Type::Symbol(_) => Type::String("symbol".to_string()),
                         Type::Function(_) => Type::String("function".to_string()),
                         Type::Null => Type::String("null".to_string()),
+                        Type::Struct(_) => Type::String("struct".to_string()),
                     }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
+            "get-field".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                if params.len() >= 2 {
+                    if let Some(value) = params[0].get_struct().get(&params[1].get_string()) {
+                        value.clone()
+                    } else {
+                        Type::Null
+                    }
+                } else {
+                    Type::Null
+                }
+            })),
+        ),
+        (
+            "set-field".to_string(),
+            Type::Function(Function::BuiltIn(|params, _| {
+                if params.len() >= 3 {
+                    let mut value = params[0].get_struct();
+                    value.insert(params[1].get_string(), params[2].clone());
+                    Type::Struct(value)
                 } else {
                     Type::Null
                 }
@@ -684,6 +711,13 @@ enum Type {
     /// [1 2 "abc"]
     /// ```
     List(Vec<Type>),
+    /// User-defined type
+    ///
+    /// Example:
+    /// ```
+    /// [1 2 "abc"]
+    /// ```
+    Struct(HashMap<String, Type>),
     /// Null
     /// Shows there's nothing
     ///
@@ -696,7 +730,7 @@ enum Type {
 
 impl Type {
     /// Parse from string
-    fn parse(source: String) -> Type {
+    fn parse(source: String, memory: &HashMap<String, Type>) -> Type {
         let mut source = source.trim().to_string();
         if let Ok(value) = source.parse::<f64>() {
             // Number value
@@ -726,7 +760,7 @@ impl Type {
             Type::Function(Function::UserDefined(vec![(
                 tokenize_expr(define[0].to_string())
                     .iter()
-                    .map(|i| Type::parse(i.to_string()))
+                    .map(|i| Type::parse(i.to_string(), memory))
                     .collect(),
                 (
                     define[1..define.len()].join("->").to_string(),
@@ -754,9 +788,23 @@ impl Type {
                 source.remove(source.rfind("]").unwrap_or_default());
                 tokenize_expr(source)
                     .iter()
-                    .map(|item| Type::parse(item.to_string()))
+                    .map(|item| eval_expr(item.to_owned(), memory))
                     .collect()
             })
+        } else if source.starts_with("struct{") && source.ends_with("}") {
+            // Lambda expression
+            source = source.replacen("struct{", "", 1);
+            source.remove(source.rfind("}").unwrap_or_default());
+            let mut result = HashMap::new();
+            for i in tokenize_program(source) {
+                if i.len() == 2 {
+                    result.insert(
+                        i[0].trim().to_string(),
+                        eval_expr(i[1].trim().to_string(), memory),
+                    );
+                }
+            }
+            Type::Struct(result)
         } else {
             // Other value will be symbol
             Type::Symbol(source.to_string())
@@ -795,6 +843,7 @@ impl Type {
             | Type::Function(Function::Module(value)) => value.len() as f64,
             Type::Function(Function::BuiltIn(_)) => 0.0,
             Type::Expr(value) | Type::Block(value) => value.len() as f64,
+            Type::Struct(i) => i.len() as f64,
         }
     }
 
@@ -831,8 +880,22 @@ impl Type {
                 )
             }
             Type::Block(value) => format!("{{ {} }}", value),
-            Type::Function(Function::Python(path, _)) => format!("<Python function: {path}>"),
-            Type::Function(Function::Module(path)) => format!("<Module function: {path}>"),
+            Type::Function(Function::Python(value, _)) => {
+                format!("<Python function: {:x}>", value.as_ptr() as u8)
+            }
+            Type::Function(Function::Module(value)) => {
+                format!("<Module function: {:x}>", value.as_ptr() as u8)
+            }
+            Type::Struct(value) => {
+                format!(
+                    "<Struct data: ({})>",
+                    value
+                        .keys()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join("; ")
+                )
+            }
         }
     }
 
@@ -870,8 +933,22 @@ impl Type {
                 )
             }
             Type::Block(value) => format!("{{ {} }}", value),
-            Type::Function(Function::Python(path, _)) => format!("<Python function: {path}>"),
-            Type::Function(Function::Module(path)) => format!("<Module function: {path}>"),
+            Type::Function(Function::Python(value, _)) => {
+                format!("<Python function: {:x}>", value.as_ptr() as u8)
+            }
+            Type::Function(Function::Module(value)) => {
+                format!("<Module function: {:x}>", value.as_ptr() as u8)
+            }
+            Type::Struct(value) => {
+                format!(
+                    "<Struct data: ({})>",
+                    value
+                        .keys()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join("; ")
+                )
+            }
         }
     }
 
@@ -884,6 +961,7 @@ impl Type {
             Type::Null => false,
             Type::Function(_) => true,
             Type::Expr(value) | Type::Block(value) => !value.is_empty(),
+            Type::Struct(s) => !s.is_empty(),
         }
     }
 
@@ -892,6 +970,13 @@ impl Type {
             Type::List(value) => value.to_owned(),
             Type::String(value) => value.chars().map(|c| Type::String(c.to_string())).collect(),
             other => vec![other.to_owned()],
+        }
+    }
+
+    fn get_struct(&self) -> HashMap<String, Type> {
+        match self {
+            Type::Struct(value) => value.to_owned(),
+            _ => HashMap::new(),
         }
     }
 
@@ -1002,7 +1087,7 @@ fn run_program(source: String, memory: &mut HashMap<String, Type>) -> Type {
                         define[1..define.len()]
                             .to_vec()
                             .iter()
-                            .map(|i| Type::parse(i.to_string()))
+                            .map(|i| Type::parse(i.to_string(), memory))
                             .collect(),
                         (
                             lines[1..lines.len()].to_vec().join(" = "),
@@ -1127,7 +1212,7 @@ fn eval_expr(expr: String, memory: &HashMap<String, Type>) -> Type {
     // Parse expression
     let expr: Vec<Type> = tokenize_expr(expr)
         .iter()
-        .map(|i| Type::parse(i.to_owned()))
+        .map(|i| Type::parse(i.to_owned(), memory))
         .collect();
 
     if expr.is_empty() {
@@ -1290,13 +1375,16 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             let value = eval_expr(code, &memory.clone());
             if value.get_symbol().starts_with("@") {
                 // Processing of lazy evaluate variable
-                let value =
-                    Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                let value = Type::parse(
+                    value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                    memory,
+                );
                 params.push(value)
             } else if value.get_symbol().starts_with("lazy") {
                 // Processing of lazy evaluate variable
                 let value = Type::parse(
                     value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                    memory,
                 );
                 params.push(value)
             } else {
@@ -1306,13 +1394,16 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             let value = run_program(block, &mut memory.clone());
             if value.get_symbol().starts_with("@") {
                 // Processing of lazy evaluate variable
-                let value =
-                    Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                let value = Type::parse(
+                    value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                    memory,
+                );
                 params.push(value)
             } else if value.get_symbol().starts_with("lazy") {
                 // Processing of lazy evaluate variable
                 let value = Type::parse(
                     value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                    memory,
                 );
                 params.push(value)
             } else {
@@ -1322,7 +1413,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
             if name.starts_with("~") {
                 // Processing of mutable length argument
                 let name = name[1..name.len()].to_string();
-                let value = Type::parse(name.clone());
+                let value = Type::parse(name.clone(), memory);
                 if let Some(value) = memory.get(&name) {
                     for j in value.get_list() {
                         // Expand　the list as argument
@@ -1351,20 +1442,26 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
                 }
             } else if name.starts_with("@") {
                 // Processing of lazy evaluate expression
-                params.push(Type::parse(name[1..name.len()].to_string()))
+                params.push(Type::parse(name[1..name.len()].to_string(), memory))
             } else if name.starts_with("lazy") {
                 // Processing of lazy evaluate expression
-                params.push(Type::parse(name["lazy".len()..name.len()].to_string()))
+                params.push(Type::parse(
+                    name["lazy".len()..name.len()].to_string(),
+                    memory,
+                ))
             } else if let Some(value) = memory.get(&name) {
                 if value.get_symbol().starts_with("@") {
                     // Processing of lazy evaluate variable
-                    let value =
-                        Type::parse(value.get_symbol()[1..value.get_symbol().len()].to_string());
+                    let value = Type::parse(
+                        value.get_symbol()[1..value.get_symbol().len()].to_string(),
+                        memory,
+                    );
                     params.push(value)
                 } else if value.get_symbol().starts_with("lazy") {
                     // Processing of lazy evaluate variable
                     let value = Type::parse(
                         value.get_symbol()["lazy".len()..value.get_symbol().len()].to_string(),
+                        memory,
                     );
                     params.push(value)
                 } else {
@@ -1449,7 +1546,7 @@ fn call_function(function: Function, args: Vec<Type>, memory: &HashMap<String, T
 
             if args.len() <= params.len() {
                 // Execute function code
-                if let Type::Block(block) = Type::parse(program.clone()) {
+                if let Type::Block(block) = Type::parse(program.clone(), memory) {
                     run_program(block, scope)
                 } else {
                     eval_expr(program.to_string(), scope)
