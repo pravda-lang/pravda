@@ -891,7 +891,7 @@ impl Type {
                     "<Struct data: ({})>",
                     value
                         .iter()
-                        .map(|(k, v)| format!("{k} = {};", v.get_symbol()))
+                        .map(|(k, v)| format!("{k} = {}", v.get_symbol()))
                         .collect::<Vec<String>>()
                         .join("; ")
                 )
@@ -944,7 +944,7 @@ impl Type {
                     "<Struct data: ({})>",
                     value
                         .iter()
-                        .map(|(k, v)| format!("{k} = {};", v.get_symbol()))
+                        .map(|(k, v)| format!("{k} = {}", v.get_symbol()))
                         .collect::<Vec<String>>()
                         .join("; ")
                 )
