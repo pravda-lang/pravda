@@ -72,6 +72,7 @@ fn main() {
                     break;
                 }
                 code += &format!("{enter} ");
+                rl.add_history_entry(&enter).unwrap_or_default();
             }
 
             if !code.is_empty() {
